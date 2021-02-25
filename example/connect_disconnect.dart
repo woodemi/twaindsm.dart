@@ -162,6 +162,8 @@ bool loadDS(
       DAT_ENTRYPOINT, MSG_OPENDS, dataSourcePtr.cast());
   if (openDS != TWRC_SUCCESS) {
     print('DG_CONTROL / DAT_ENTRYPOINT / MSG_OPENDS Failed: $openDS');
+    var twcc = describeConditionCode(getTWCC(dataSourcePtr));
+    print('twcc $twcc');
     return false;
   }
   return true;
@@ -175,7 +177,84 @@ bool unloadDS(
       DAT_ENTRYPOINT, MSG_CLOSEDS, dataSourcePtr.cast());
   if (closeDS != TWRC_SUCCESS) {
     print('DG_CONTROL / DAT_ENTRYPOINT / MSG_CLOSEDS Failed: $closeDS');
+    var twcc = describeConditionCode(getTWCC(dataSourcePtr));
+    print('twcc $twcc');
     return false;
   }
   return true;
+}
+
+int getTWCC(Pointer<TW_IDENTITY> dataSourcePtr) {
+  var statusPtr = ffi.allocate<TW_STATUS>();
+  try {
+    var getStatus = twainDsm.DSM_Entry(dataSourcePtr, nullptr, DG_CONTROL, DAT_STATUS, MSG_GET,
+        statusPtr.cast());
+    return getStatus == TWRC_SUCCESS ? statusPtr.ref.ConditionCode : -1;
+  } finally {
+    ffi.free(statusPtr);
+  }
+}
+
+String describeConditionCode(int twcc) {
+  switch(twcc)
+  {
+  case TWCC_SUCCESS:
+    return 'TWCC_SUCCESS';
+  case TWCC_BUMMER:
+    return 'TWCC_BUMMER';
+  case TWCC_LOWMEMORY:
+    return 'TWCC_LOWMEMORY';
+  case TWCC_NODS:
+    return 'TWCC_NODS';
+  case TWCC_MAXCONNECTIONS:
+    return 'TWCC_MAXCONNECTIONS';
+  case TWCC_OPERATIONERROR:
+    return 'TWCC_OPERATIONERROR';
+  case TWCC_BADCAP:
+    return 'TWCC_BADCAP';
+  case TWCC_BADPROTOCOL:
+    return 'TWCC_BADPROTOCOL';
+  case TWCC_BADVALUE:
+    return 'TWCC_BADVALUE';
+  case TWCC_SEQERROR:
+    return 'TWCC_SEQERROR';
+  case TWCC_BADDEST:
+    return 'TWCC_BADDEST';
+  case TWCC_CAPUNSUPPORTED:
+    return 'TWCC_CAPUNSUPPORTED';
+  case TWCC_CAPBADOPERATION:
+    return 'TWCC_CAPBADOPERATION';
+  case TWCC_CAPSEQERROR:
+    return 'TWCC_CAPSEQERROR';
+  case TWCC_DENIED:
+    return 'TWCC_DENIED';
+  case TWCC_FILEEXISTS:
+    return 'TWCC_FILEEXISTS';
+  case TWCC_FILENOTFOUND:
+    return 'TWCC_FILENOTFOUND';
+  case TWCC_NOTEMPTY:
+    return 'TWCC_NOTEMPTY';
+  case TWCC_PAPERJAM:
+    return 'TWCC_PAPERJAM';
+  case TWCC_PAPERDOUBLEFEED:
+    return 'TWCC_PAPERDOUBLEFEED';
+  case TWCC_FILEWRITEERROR:
+    return 'TWCC_FILEWRITEERROR';
+  case TWCC_CHECKDEVICEONLINE:
+    return 'TWCC_CHECKDEVICEONLINE';
+  case TWCC_INTERLOCK:
+    return 'TWCC_INTERLOCK';
+  case TWCC_DAMAGEDCORNER:
+    return 'TWCC_DAMAGEDCORNER';
+  case TWCC_FOCUSERROR:
+    return 'TWCC_FOCUSERROR';
+  case TWCC_DOCTOOLIGHT:
+    return 'TWCC_DOCTOOLIGHT';
+  case TWCC_DOCTOODARK:
+    return 'TWCC_DOCTOODARK';
+  case TWCC_NOMEDIA:
+    return 'TWCC_NOMEDIA';
+  default:
+    return 'ConditionCode $twcc';
+  }
 }

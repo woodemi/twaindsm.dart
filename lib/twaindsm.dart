@@ -332,9 +332,12 @@ class pTW_SETUPMEMXFER extends ffi.Struct {
   int Preferred;
 }
 
-class pTW_STATUS extends ffi.Struct {
+class TW_STATUS extends ffi.Struct {
   @ffi.Uint16()
   int ConditionCode;
+
+  @ffi.Uint16()
+  int Data;
 }
 
 class pTW_STATUSUTF8 extends ffi.Struct {}

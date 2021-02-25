@@ -575,13 +575,12 @@ typedef struct {
 } TW_SETUPMEMXFER, FAR * pTW_SETUPMEMXFER;
 
 /* Describes the status of a source. */
-typedef struct {
+struct TW_STATUS {
    TW_UINT16  ConditionCode;
-   union {
-     TW_UINT16  Data;
-     TW_UINT16  Reserved;
-   };
-} TW_STATUS, FAR * pTW_STATUS;
+   TW_UINT16  Data;
+};
+
+typedef TW_STATUS * pTW_STATUS;
 
 /* Translates the contents of Status into a localized UTF8string. */
 typedef struct {
