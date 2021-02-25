@@ -30,7 +30,7 @@ void main(List<String> arguments) {
       print('getEntryPoint success');
     }
 
-    getFirstSource(myInfo.pointer);
+    operateDS(myInfo.pointer);
 
     if (!disconnectDSM(myInfo.pointer, parentPtr)) {
       return;
@@ -100,6 +100,40 @@ bool getEntryPoint(
   return true;
 }
 
+void operateDS(Pointer<TW_IDENTITY> myInfoPtr) {
+  var dataSource = TWIdentity();
+
+  try {
+    // getFirstSource(myInfo.pointer);
+
+    dataSource.Id = 1;
+    var version = dataSource.Version;
+    version.MajorNum = 2;
+    version.MinorNum = 4;
+    version.Language = 2;
+    version.Country = 1;
+    version.Info = '2.4.0 sample release 64bit';
+    dataSource.ProtocolMajor = 2;
+    dataSource.ProtocolMinor = 4;
+    dataSource.SupportedGroups = 0x40000003;
+    dataSource.Manufacturer = 'TWAIN Working Group';
+    dataSource.ProductFamily = 'Software Scan';
+    dataSource.ProductName = 'TWAIN2 Software Scanner';
+
+    if (!loadDS(myInfoPtr, dataSource.pointer)) {
+      return;
+    }
+    print('loadDS success');
+
+    if (!unloadDS(myInfoPtr, dataSource.pointer)) {
+      return;
+    }
+    print('unloadDS success');
+  } finally {
+    dataSource.dispose();
+  }
+}
+
 void getFirstSource(
   Pointer<TW_IDENTITY> myInfoPtr,
 ) {
@@ -118,4 +152,30 @@ void getFirstSource(
   } finally {
     source.dispose();
   }
+}
+
+bool loadDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+) {
+  var openDS = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+      DAT_ENTRYPOINT, MSG_OPENDS, dataSourcePtr.cast());
+  if (openDS != TWRC_SUCCESS) {
+    print('DG_CONTROL / DAT_ENTRYPOINT / MSG_OPENDS Failed: $openDS');
+    return false;
+  }
+  return true;
+}
+
+bool unloadDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+) {
+  var closeDS = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+      DAT_ENTRYPOINT, MSG_CLOSEDS, dataSourcePtr.cast());
+  if (closeDS != TWRC_SUCCESS) {
+    print('DG_CONTROL / DAT_ENTRYPOINT / MSG_CLOSEDS Failed: $closeDS');
+    return false;
+  }
+  return true;
 }
