@@ -7,7 +7,7 @@ import 'package:twaindsm/struct.dart';
 import 'package:win32/win32.dart';
 
 final twainDsm = TwainDsm(DynamicLibrary.open(
-    '${Directory.current.path}/twaindsm/TWAINDSM-2.4.3.dll'));
+    '${Directory.current.path}/twaindsm/TWAINDSM32-2.4.3.dll'));
 
 void main(List<String> arguments) {
   var myInfo = TWIdentity();
@@ -23,12 +23,12 @@ void main(List<String> arguments) {
     }
     print('connectDSM success');
 
-    if (myInfo.SupportedGroups & DF_DSM2 == DF_DSM2) {
-      if (!getEntryPoint(myInfo.pointer, entryPointPtr)) {
-        return;
-      }
-      print('getEntryPoint success');
-    }
+    // if (myInfo.SupportedGroups & DF_DSM2 == DF_DSM2) {
+    //   if (!getEntryPoint(myInfo.pointer, entryPointPtr)) {
+    //     return;
+    //   }
+    //   print('getEntryPoint success');
+    // }
 
     operateDS(myInfo.pointer);
 
@@ -104,21 +104,9 @@ void operateDS(Pointer<TW_IDENTITY> myInfoPtr) {
   var dataSource = TWIdentity();
 
   try {
-    // getFirstSource(myInfo.pointer);
+    getFirstSource(myInfoPtr, dataSource);
 
-    dataSource.Id = 1;
-    var version = dataSource.Version;
-    version.MajorNum = 2;
-    version.MinorNum = 4;
-    version.Language = 2;
-    version.Country = 1;
-    version.Info = '2.4.0 sample release 64bit';
-    dataSource.ProtocolMajor = 2;
-    dataSource.ProtocolMinor = 4;
-    dataSource.SupportedGroups = 0x40000003;
-    dataSource.Manufacturer = 'TWAIN Working Group';
-    dataSource.ProductFamily = 'Software Scan';
-    dataSource.ProductName = 'TWAIN2 Software Scanner';
+    // fillDataSource(dataSource);
 
     if (!loadDS(myInfoPtr, dataSource.pointer)) {
       return;
@@ -136,22 +124,34 @@ void operateDS(Pointer<TW_IDENTITY> myInfoPtr) {
 
 void getFirstSource(
   Pointer<TW_IDENTITY> myInfoPtr,
+  TWIdentity dataSource,
 ) {
-  var source = TWIdentity();
-  try {
-    var getFirst = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
-        DAT_IDENTITY, MSG_GETFIRST, source.pointer.cast());
-    if (getFirst == TWRC_ENDOFLIST) {
-      print('No source found');
+  var getFirst = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+        DAT_IDENTITY, MSG_GETFIRST, dataSource.pointer.cast());
+  if (getFirst == TWRC_ENDOFLIST) {
+    print('No source found');
       return;
-    } else if (getFirst != TWRC_SUCCESS) {
-      print('DG_CONTROL / DAT_IDENTITY / MSG_GETFIRST Failed: $getFirst');
-      return;
-    }
-    print('source $source');
-  } finally {
-    source.dispose();
+  } else if (getFirst != TWRC_SUCCESS) {
+    print('DG_CONTROL / DAT_IDENTITY / MSG_GETFIRST Failed: $getFirst');
+    return;
   }
+  print('dataSource $dataSource');
+}
+
+void fillDataSource(TWIdentity dataSource) {
+  dataSource.Id = 1;
+  var version = dataSource.Version;
+  version.MajorNum = 2;
+  version.MinorNum = 4;
+  version.Language = 2;
+  version.Country = 1;
+  version.Info = '2.4.0 sample release 64bit';
+  dataSource.ProtocolMajor = 2;
+  dataSource.ProtocolMinor = 4;
+  dataSource.SupportedGroups = 0x40000003;
+  dataSource.Manufacturer = 'TWAIN Working Group';
+  dataSource.ProductFamily = 'Software Scan';
+  dataSource.ProductName = 'TWAIN2 Software Scanner';
 }
 
 bool loadDS(
@@ -187,8 +187,8 @@ bool unloadDS(
 int getTWCC(Pointer<TW_IDENTITY> dataSourcePtr) {
   var statusPtr = ffi.allocate<TW_STATUS>();
   try {
-    var getStatus = twainDsm.DSM_Entry(dataSourcePtr, nullptr, DG_CONTROL, DAT_STATUS, MSG_GET,
-        statusPtr.cast());
+    var getStatus = twainDsm.DSM_Entry(dataSourcePtr, nullptr, DG_CONTROL,
+        DAT_STATUS, MSG_GET, statusPtr.cast());
     return getStatus == TWRC_SUCCESS ? statusPtr.ref.ConditionCode : -1;
   } finally {
     ffi.free(statusPtr);
@@ -196,65 +196,64 @@ int getTWCC(Pointer<TW_IDENTITY> dataSourcePtr) {
 }
 
 String describeConditionCode(int twcc) {
-  switch(twcc)
-  {
-  case TWCC_SUCCESS:
-    return 'TWCC_SUCCESS';
-  case TWCC_BUMMER:
-    return 'TWCC_BUMMER';
-  case TWCC_LOWMEMORY:
-    return 'TWCC_LOWMEMORY';
-  case TWCC_NODS:
-    return 'TWCC_NODS';
-  case TWCC_MAXCONNECTIONS:
-    return 'TWCC_MAXCONNECTIONS';
-  case TWCC_OPERATIONERROR:
-    return 'TWCC_OPERATIONERROR';
-  case TWCC_BADCAP:
-    return 'TWCC_BADCAP';
-  case TWCC_BADPROTOCOL:
-    return 'TWCC_BADPROTOCOL';
-  case TWCC_BADVALUE:
-    return 'TWCC_BADVALUE';
-  case TWCC_SEQERROR:
-    return 'TWCC_SEQERROR';
-  case TWCC_BADDEST:
-    return 'TWCC_BADDEST';
-  case TWCC_CAPUNSUPPORTED:
-    return 'TWCC_CAPUNSUPPORTED';
-  case TWCC_CAPBADOPERATION:
-    return 'TWCC_CAPBADOPERATION';
-  case TWCC_CAPSEQERROR:
-    return 'TWCC_CAPSEQERROR';
-  case TWCC_DENIED:
-    return 'TWCC_DENIED';
-  case TWCC_FILEEXISTS:
-    return 'TWCC_FILEEXISTS';
-  case TWCC_FILENOTFOUND:
-    return 'TWCC_FILENOTFOUND';
-  case TWCC_NOTEMPTY:
-    return 'TWCC_NOTEMPTY';
-  case TWCC_PAPERJAM:
-    return 'TWCC_PAPERJAM';
-  case TWCC_PAPERDOUBLEFEED:
-    return 'TWCC_PAPERDOUBLEFEED';
-  case TWCC_FILEWRITEERROR:
-    return 'TWCC_FILEWRITEERROR';
-  case TWCC_CHECKDEVICEONLINE:
-    return 'TWCC_CHECKDEVICEONLINE';
-  case TWCC_INTERLOCK:
-    return 'TWCC_INTERLOCK';
-  case TWCC_DAMAGEDCORNER:
-    return 'TWCC_DAMAGEDCORNER';
-  case TWCC_FOCUSERROR:
-    return 'TWCC_FOCUSERROR';
-  case TWCC_DOCTOOLIGHT:
-    return 'TWCC_DOCTOOLIGHT';
-  case TWCC_DOCTOODARK:
-    return 'TWCC_DOCTOODARK';
-  case TWCC_NOMEDIA:
-    return 'TWCC_NOMEDIA';
-  default:
-    return 'ConditionCode $twcc';
+  switch (twcc) {
+    case TWCC_SUCCESS:
+      return 'TWCC_SUCCESS';
+    case TWCC_BUMMER:
+      return 'TWCC_BUMMER';
+    case TWCC_LOWMEMORY:
+      return 'TWCC_LOWMEMORY';
+    case TWCC_NODS:
+      return 'TWCC_NODS';
+    case TWCC_MAXCONNECTIONS:
+      return 'TWCC_MAXCONNECTIONS';
+    case TWCC_OPERATIONERROR:
+      return 'TWCC_OPERATIONERROR';
+    case TWCC_BADCAP:
+      return 'TWCC_BADCAP';
+    case TWCC_BADPROTOCOL:
+      return 'TWCC_BADPROTOCOL';
+    case TWCC_BADVALUE:
+      return 'TWCC_BADVALUE';
+    case TWCC_SEQERROR:
+      return 'TWCC_SEQERROR';
+    case TWCC_BADDEST:
+      return 'TWCC_BADDEST';
+    case TWCC_CAPUNSUPPORTED:
+      return 'TWCC_CAPUNSUPPORTED';
+    case TWCC_CAPBADOPERATION:
+      return 'TWCC_CAPBADOPERATION';
+    case TWCC_CAPSEQERROR:
+      return 'TWCC_CAPSEQERROR';
+    case TWCC_DENIED:
+      return 'TWCC_DENIED';
+    case TWCC_FILEEXISTS:
+      return 'TWCC_FILEEXISTS';
+    case TWCC_FILENOTFOUND:
+      return 'TWCC_FILENOTFOUND';
+    case TWCC_NOTEMPTY:
+      return 'TWCC_NOTEMPTY';
+    case TWCC_PAPERJAM:
+      return 'TWCC_PAPERJAM';
+    case TWCC_PAPERDOUBLEFEED:
+      return 'TWCC_PAPERDOUBLEFEED';
+    case TWCC_FILEWRITEERROR:
+      return 'TWCC_FILEWRITEERROR';
+    case TWCC_CHECKDEVICEONLINE:
+      return 'TWCC_CHECKDEVICEONLINE';
+    case TWCC_INTERLOCK:
+      return 'TWCC_INTERLOCK';
+    case TWCC_DAMAGEDCORNER:
+      return 'TWCC_DAMAGEDCORNER';
+    case TWCC_FOCUSERROR:
+      return 'TWCC_FOCUSERROR';
+    case TWCC_DOCTOOLIGHT:
+      return 'TWCC_DOCTOOLIGHT';
+    case TWCC_DOCTOODARK:
+      return 'TWCC_DOCTOODARK';
+    case TWCC_NOMEDIA:
+      return 'TWCC_NOMEDIA';
+    default:
+      return 'ConditionCode $twcc';
   }
 }
