@@ -8,7 +8,9 @@ import 'package:twaindsm/twaindsm.dart';
 abstract class _TWStruct<T extends Struct> {
   final Pointer<Uint8> _pointer;
 
-  _TWStruct(int size) : _pointer = ffi.allocate<Uint8>(count: size);
+  _TWStruct(int size) : _pointer = ffi.allocate<Uint8>(count: size) {
+    _pointer.asTypedList(size).setAll(0, List.filled(size, 0));
+  }
 
   _TWStruct._fromAddress(int ptr) : _pointer = Pointer.fromAddress(ptr);
 
@@ -26,16 +28,18 @@ abstract class _TWStruct<T extends Struct> {
 
   int _getUint16(int offset) => _byteData.getUint16(offset, Endian.host);
 
-  void _setUint16(int offset, int i) => _byteData.setUint16(offset, i, Endian.host);
+  void _setUint16(int offset, int i) =>
+      _byteData.setUint16(offset, i, Endian.host);
 
   int _getUint32(int offset) => _byteData.getUint32(offset, Endian.host);
 
-  void _setUint32(int offset, int i) => _byteData.setUint32(offset, i, Endian.host);
+  void _setUint32(int offset, int i) =>
+      _byteData.setUint32(offset, i, Endian.host);
 
   String _getString(int offset, int maxLength) {
     var nativeString = _nativeList.sublist(offset, offset + 34);
     var strlen = nativeString.indexWhere((char) => char == 0);
-    return utf8.decode(nativeString.sublist(strlen));
+    return utf8.decode(nativeString.sublist(0, strlen));
   }
 
   void _setString(int offset, String s, int maxLength) {
@@ -54,7 +58,7 @@ abstract class _TWStruct<T extends Struct> {
 class TWVersion extends _TWStruct<TW_VERSION> {
   static const _size = 2 + 2 + 2 + 2 + 34;
 
-  TWVersion._fromAddress(int ptr): super._fromAddress(ptr);
+  TWVersion._fromAddress(int ptr) : super._fromAddress(ptr);
 
   @override
   void dispose() {
@@ -85,6 +89,17 @@ class TWVersion extends _TWStruct<TW_VERSION> {
   String get Info => _getString(_InfoOffset, 34);
 
   set Info(String s) => _setString(_InfoOffset, s, 34);
+
+  @override
+  String toString() {
+    return {
+      'MajorNum': MajorNum,
+      'MinorNum': MinorNum,
+      'Language': Language,
+      'Country': Country,
+      'Info': Info,
+    }.toString();
+  }
 }
 
 // struct TW_IDENTITY {
@@ -162,4 +177,18 @@ class TWIdentity extends _TWStruct<TW_IDENTITY> {
   String get ProductName => _getString(_ProductNameOffset, 34);
 
   set ProductName(String s) => _setString(_ProductNameOffset, s, 34);
+
+  @override
+  String toString() {
+    return {
+      'Id': Id,
+      'Version': Version.toString(),
+      'ProtocolMajor': ProtocolMajor,
+      'ProtocolMinor': ProtocolMinor,
+      'SupportedGroups': SupportedGroups,
+      'Manufacturer': Manufacturer,
+      'ProductFamily': ProductFamily,
+      'ProductName': ProductName,
+    }.toString();
+  }
 }

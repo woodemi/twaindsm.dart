@@ -114,7 +114,7 @@ void getFirstSource(
       print('DG_CONTROL / DAT_IDENTITY / MSG_GETFIRST Failed: $getFirst');
       return;
     }
-    print('source.Id ${source.Id}');
+    print('source $source');
   } finally {
     source.dispose();
   }
