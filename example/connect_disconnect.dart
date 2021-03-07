@@ -7,7 +7,10 @@ import 'package:twaindsm/struct.dart';
 import 'package:win32/win32.dart';
 
 final twainDsm = TwainDsm(DynamicLibrary.open(
+    // '${Directory.current.path}/twaindsm/TWAINDSM64-2.4.3.dll'));
     '${Directory.current.path}/twaindsm/TWAINDSM32-2.4.3.dll'));
+    // 'C:\\Windows\\System32\\TWAINDSM.dll'));
+    // 'C:\\Windows\\SysWOW64\\TWAINDSM.dll'));
 
 void main(List<String> arguments) {
   var myInfo = TWIdentity();
@@ -23,12 +26,12 @@ void main(List<String> arguments) {
     }
     print('connectDSM success');
 
-    // if (myInfo.SupportedGroups & DF_DSM2 == DF_DSM2) {
-    //   if (!getEntryPoint(myInfo.pointer, entryPointPtr)) {
-    //     return;
-    //   }
-    //   print('getEntryPoint success');
-    // }
+    if (myInfo.SupportedGroups & DF_DSM2 == DF_DSM2) {
+      if (!getEntryPoint(myInfo.pointer, entryPointPtr)) {
+        return;
+      }
+      print('getEntryPoint success');
+    }
 
     operateDS(myInfo.pointer);
 
@@ -89,8 +92,7 @@ bool getEntryPoint(
   Pointer<TW_IDENTITY> myInfoPtr,
   Pointer<TW_ENTRYPOINT> entryPointPtr,
 ) {
-  // FIXME sizeOf<TW_ENTRYPOINT>() = 48;
-  entryPointPtr.ref.Size = 44;
+  entryPointPtr.ref.Size = sizeOf<TW_ENTRYPOINT>();
   var entryPoint = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
       DAT_ENTRYPOINT, MSG_GET, entryPointPtr.cast());
   if (entryPoint != TWRC_SUCCESS) {
@@ -101,13 +103,9 @@ bool getEntryPoint(
 }
 
 void operateDS(Pointer<TW_IDENTITY> myInfoPtr) {
-  var dataSource = TWIdentity();
-
+  var dataSourceList = iterateDataSource(myInfoPtr);
   try {
-    getFirstSource(myInfoPtr, dataSource);
-
-    // fillDataSource(dataSource);
-
+    var dataSource = dataSourceList[2];
     if (!loadDS(myInfoPtr, dataSource.pointer)) {
       return;
     }
@@ -118,40 +116,43 @@ void operateDS(Pointer<TW_IDENTITY> myInfoPtr) {
     }
     print('unloadDS success');
   } finally {
-    dataSource.dispose();
+    dataSourceList.forEach((e) => e.dispose());
   }
 }
 
-void getFirstSource(
-  Pointer<TW_IDENTITY> myInfoPtr,
-  TWIdentity dataSource,
-) {
+List<TWIdentity> iterateDataSource(Pointer<TW_IDENTITY> myInfoPtr) {
+  var dataSource = TWIdentity();
   var getFirst = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
         DAT_IDENTITY, MSG_GETFIRST, dataSource.pointer.cast());
   if (getFirst == TWRC_ENDOFLIST) {
-    print('No source found');
-      return;
+    dataSource.dispose();
+    return [];
   } else if (getFirst != TWRC_SUCCESS) {
-    print('DG_CONTROL / DAT_IDENTITY / MSG_GETFIRST Failed: $getFirst');
-    return;
+    var twcc = describeConditionCode(getTWCC(dataSource.pointer));
+    print('DG_CONTROL / DAT_IDENTITY / MSG_GETNEXT Failed: $twcc');
+    dataSource.dispose();
+    return null;
   }
-  print('dataSource $dataSource');
-}
+  var res = [dataSource];
 
-void fillDataSource(TWIdentity dataSource) {
-  dataSource.Id = 1;
-  var version = dataSource.Version;
-  version.MajorNum = 2;
-  version.MinorNum = 4;
-  version.Language = 2;
-  version.Country = 1;
-  version.Info = '2.4.0 sample release 64bit';
-  dataSource.ProtocolMajor = 2;
-  dataSource.ProtocolMinor = 4;
-  dataSource.SupportedGroups = 0x40000003;
-  dataSource.Manufacturer = 'TWAIN Working Group';
-  dataSource.ProductFamily = 'Software Scan';
-  dataSource.ProductName = 'TWAIN2 Software Scanner';
+  int getNext;
+  do {
+    dataSource = TWIdentity();
+    getNext = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+        DAT_IDENTITY, MSG_GETNEXT, dataSource.pointer.cast());
+    if (getNext == TWRC_SUCCESS) {
+      res.add(dataSource);
+    } else if (getNext == TWRC_ENDOFLIST) {
+      dataSource.dispose();
+      return res;
+    } else if (getNext == TWRC_FAILURE) {
+      var twcc = describeConditionCode(getTWCC(dataSource.pointer));
+      print('DG_CONTROL / DAT_IDENTITY / MSG_GETNEXT Failed: $twcc');
+      dataSource.dispose();
+    }
+  } while (getNext == TWRC_SUCCESS);
+
+  return res;
 }
 
 bool loadDS(
@@ -159,9 +160,9 @@ bool loadDS(
   Pointer<TW_IDENTITY> dataSourcePtr,
 ) {
   var openDS = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
-      DAT_ENTRYPOINT, MSG_OPENDS, dataSourcePtr.cast());
+      DAT_IDENTITY, MSG_OPENDS, dataSourcePtr.cast());
   if (openDS != TWRC_SUCCESS) {
-    print('DG_CONTROL / DAT_ENTRYPOINT / MSG_OPENDS Failed: $openDS');
+    print('DG_CONTROL / DAT_IDENTITY / MSG_OPENDS Failed: $openDS');
     var twcc = describeConditionCode(getTWCC(dataSourcePtr));
     print('twcc $twcc');
     return false;
@@ -174,7 +175,7 @@ bool unloadDS(
   Pointer<TW_IDENTITY> dataSourcePtr,
 ) {
   var closeDS = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
-      DAT_ENTRYPOINT, MSG_CLOSEDS, dataSourcePtr.cast());
+      DAT_IDENTITY, MSG_CLOSEDS, dataSourcePtr.cast());
   if (closeDS != TWRC_SUCCESS) {
     print('DG_CONTROL / DAT_ENTRYPOINT / MSG_CLOSEDS Failed: $closeDS');
     var twcc = describeConditionCode(getTWCC(dataSourcePtr));
