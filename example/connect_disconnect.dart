@@ -4,7 +4,10 @@ import 'dart:io';
 import 'package:ffi/ffi.dart' as ffi;
 import 'package:twaindsm/twaindsm.dart';
 import 'package:twaindsm/struct.dart';
+import 'package:twaindsm/user32.dart';
 import 'package:win32/win32.dart';
+
+final user32 = User32(DynamicLibrary.open('user32.dll'));
 
 final twainDsm = TwainDsm(DynamicLibrary.open(
     // '${Directory.current.path}/twaindsm/TWAINDSM64-2.4.3.dll'));
@@ -14,14 +17,14 @@ final twainDsm = TwainDsm(DynamicLibrary.open(
 
 void main(List<String> arguments) {
   var myInfo = TWIdentity();
-  var parentPtr = ffi.allocate<Int32>();
+  var consolePtr = ffi.allocate<Int32>();
   var entryPointPtr = ffi.allocate<TW_ENTRYPOINT>();
 
   fillIdentity(myInfo);
-  parentPtr.value = GetConsoleWindow();
+  consolePtr.value = GetConsoleWindow();
 
   try {
-    if (!connectDSM(myInfo.pointer, parentPtr)) {
+    if (!connectDSM(myInfo.pointer, consolePtr)) {
       return;
     }
     print('connectDSM success');
@@ -33,15 +36,15 @@ void main(List<String> arguments) {
       print('getEntryPoint success');
     }
 
-    operateDS(myInfo.pointer);
+    operateDS(myInfo.pointer, entryPointPtr);
 
-    if (!disconnectDSM(myInfo.pointer, parentPtr)) {
+    if (!disconnectDSM(myInfo.pointer, consolePtr)) {
       return;
     }
     print('disconnectDSM success');
   } finally {
     myInfo.dispose();
-    ffi.free(parentPtr);
+    ffi.free(consolePtr);
     ffi.free(entryPointPtr);
   }
 }
@@ -102,7 +105,10 @@ bool getEntryPoint(
   return true;
 }
 
-void operateDS(Pointer<TW_IDENTITY> myInfoPtr) {
+void operateDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_ENTRYPOINT> entryPointPtr,
+) {
   var dataSourceList = iterateDataSource(myInfoPtr);
   try {
     var dataSource = dataSourceList[2];
@@ -111,6 +117,8 @@ void operateDS(Pointer<TW_IDENTITY> myInfoPtr) {
     }
     print('loadDS success');
 
+    opDS(myInfoPtr, dataSource.pointer, entryPointPtr);
+
     if (!unloadDS(myInfoPtr, dataSource.pointer)) {
       return;
     }
@@ -118,6 +126,74 @@ void operateDS(Pointer<TW_IDENTITY> myInfoPtr) {
   } finally {
     dataSourceList.forEach((e) => e.dispose());
   }
+}
+
+void opDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+  Pointer<TW_ENTRYPOINT> entryPointPtr,
+) {
+  if (!enableDS(myInfoPtr, dataSourcePtr, user32.GetDesktopWindow())) {
+    return;
+  }
+  print('enableDS success');
+  
+  var dsMessage = pollTWMessage(myInfoPtr, dataSourcePtr);
+  
+  if (dsMessage == MSG_XFERREADY) {
+    var xferMechPtr = allocateCAP(myInfoPtr, dataSourcePtr, ICAP_XFERMECH);
+
+    // startScan(dataSourcePtr, xferMechPtr);
+    var xferMechValue = getCurrent(dataSourcePtr, xferMechPtr, entryPointPtr);
+    switch (xferMechValue) {
+      case TWSX_NATIVE:
+        initiateTransfer_Native();
+        break;
+    }
+
+    entryPointPtr.memFree(xferMechPtr.ref.hContainer);
+    ffi.free(xferMechPtr);
+  }
+  
+  disableDS(myInfoPtr, dataSourcePtr);
+}
+
+int pollTWMessage(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+) {
+  var msgPtr = ffi.allocate<MSG>();
+  var eventPtr = ffi.allocate<pTW_EVENT>();
+  var dsMessage = MSG_NULL;
+  while (dsMessage == MSG_NULL) {
+    if (GetMessage(msgPtr, 0, 0, 0) != TRUE) {
+      break; // WM_QUIT
+    }
+  
+    eventPtr.ref.pEvent = msgPtr.cast();
+    eventPtr.ref.TWMessage = MSG_NULL;
+    var processEvent = twainDsm.DSM_Entry(myInfoPtr, dataSourcePtr, DG_CONTROL, DAT_EVENT, MSG_PROCESSEVENT, eventPtr.cast());
+    if (processEvent != TWRC_DSEVENT) {
+      TranslateMessage(msgPtr);
+      DispatchMessage(msgPtr);
+      continue;
+    }
+  
+    switch (eventPtr.ref.TWMessage) {
+      case MSG_XFERREADY:
+      case MSG_CLOSEDSREQ:
+      case MSG_CLOSEDSOK:
+      case MSG_NULL:
+        dsMessage = eventPtr.ref.TWMessage;
+        break;
+      default:
+        print('Unknown message in MSG_PROCESSEVENT loop');
+        break;
+    }
+  }
+  ffi.free(eventPtr);
+  ffi.free(msgPtr);
+  return dsMessage;
 }
 
 List<TWIdentity> iterateDataSource(Pointer<TW_IDENTITY> myInfoPtr) {
@@ -183,6 +259,113 @@ bool unloadDS(
     return false;
   }
   return true;
+}
+
+Pointer<pTW_CAPABILITY> allocateCAP(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+  int cap,
+) {
+  var capability = ffi.allocate<pTW_CAPABILITY>();
+  capability.ref.Cap = cap;
+  capability.ref.ConType = TWON_DONTCARE16;
+  var twrc = twainDsm.DSM_Entry(myInfoPtr, dataSourcePtr, DG_CONTROL, DAT_CAPABILITY, MSG_GET, capability.cast());
+  if (twrc != TWRC_SUCCESS) {
+    var twcc = describeConditionCode(getTWCC(dataSourcePtr));
+    print('Failed to get the capability: [${capability.ref.Cap}], $twcc');
+    ffi.free(capability);
+    return null;
+  }
+  print('allocateCAP ${capability.ref.Cap}, ${capability.ref.ConType}');
+  return capability;
+}
+
+bool enableDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+  Pointer<HWND> windowsPtr,
+) {
+  var userInterfacePtr = ffi.allocate<pTW_USERINTERFACE>();
+  try {
+    userInterfacePtr.ref.ShowUI = FALSE;
+    userInterfacePtr.ref.ModalUI = TRUE;
+    userInterfacePtr.ref.hParent = windowsPtr.cast();
+    var twrc = twainDsm.DSM_Entry(myInfoPtr, dataSourcePtr, DG_CONTROL, DAT_USERINTERFACE, MSG_ENABLEDS, userInterfacePtr.cast());
+    if (twrc != TWRC_SUCCESS && twrc != TWRC_CHECKSTATUS) {
+      var twcc = describeConditionCode(getTWCC(dataSourcePtr));
+      print('Cannot enable source $twcc');
+      return false;
+    }
+    return true;
+  } finally {
+    ffi.free(userInterfacePtr);
+  }
+}
+
+void disableDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+) {
+  var userInterfacePtr = ffi.allocate<pTW_USERINTERFACE>();
+  try {
+    var twrc = twainDsm.DSM_Entry(myInfoPtr, dataSourcePtr, DG_CONTROL, DAT_USERINTERFACE, MSG_ENABLEDS, userInterfacePtr.cast());
+    if (twrc != TWRC_SUCCESS) {
+      var twcc = describeConditionCode(getTWCC(dataSourcePtr));
+      print('Cannot disable source $twcc');
+    }
+  } finally {
+    ffi.free(userInterfacePtr);
+  }
+}
+
+void initiateTransfer_Native() {
+  print('initiateTransfer_Native');
+}
+
+int getCurrent(
+  Pointer<TW_IDENTITY> dataSourcePtr,
+  Pointer<pTW_CAPABILITY> cap,
+  Pointer<TW_ENTRYPOINT> entryPointPtr,
+) {
+  if (cap.ref.hContainer == nullptr) {
+    return null;
+  }
+
+  var containerPtr = entryPointPtr.memLock(cap.ref.hContainer);
+  try {
+    print('getCurrent ${cap.ref.Cap}, ${cap.ref.ConType}');
+    if (cap.ref.ConType == TWON_ENUMERATION) {
+      // var cast = cap.ref.hContainer.cast<Uint8>().asTypedList(2 + 4 + 4 + 4);
+      // print('cast ' + hex.encode(cast));
+      var enumerationPtr = TWEnumeration.fromAddress(containerPtr.address);
+      print('enumerationPtr ${enumerationPtr.debugHex()}');
+      var itemListPtr = Pointer.fromAddress(enumerationPtr.getItemListAddress());
+      switch (enumerationPtr.ItemType) {
+        case TWTY_INT32:
+          return itemListPtr.cast<Int32>()[enumerationPtr.CurrentIndex];
+        case TWTY_UINT32:
+          return itemListPtr.cast<Uint32>()[enumerationPtr.CurrentIndex];
+        case TWTY_INT16:
+          return itemListPtr.cast<Int16>()[enumerationPtr.CurrentIndex];
+        case TWTY_UINT16:
+          return itemListPtr.cast<Uint16>()[enumerationPtr.CurrentIndex];
+        case TWTY_INT8:
+          return itemListPtr.cast<Int8>()[enumerationPtr.CurrentIndex];
+        case TWTY_UINT8:
+          return itemListPtr.cast<Uint8>()[enumerationPtr.CurrentIndex];
+        case TWTY_BOOL:
+          return itemListPtr.cast<Uint16>()[enumerationPtr.CurrentIndex];
+      }
+    } else if (cap.ref.ConType == TWON_ONEVALUE) {
+
+    } else if (cap.ref.ConType == TWON_RANGE) {
+
+    }
+    return null;
+  } finally {
+    entryPointPtr.memUnlock(cap.ref.hContainer);    
+  }
+
 }
 
 int getTWCC(Pointer<TW_IDENTITY> dataSourcePtr) {
@@ -257,4 +440,14 @@ String describeConditionCode(int twcc) {
     default:
       return 'ConditionCode $twcc';
   }
+}
+
+extension TWEntryPointPointer on Pointer<TW_ENTRYPOINT> {
+  Pointer<Void> Function(int) get memAllocate => ref.DSM_MemAllocate.asFunction();
+
+  void Function(Pointer<Void>) get memFree => ref.DSM_MemFree.asFunction();
+
+  Pointer<Void> Function(Pointer<Void>) get memLock => ref.DSM_MemLock.asFunction();
+
+  void Function(Pointer<Void>) get memUnlock => ref.DSM_MemUnlock.asFunction();
 }

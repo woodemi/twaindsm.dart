@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:ffi';
 import 'dart:typed_data';
 
+import 'package:convert/convert.dart';
 import 'package:ffi/ffi.dart' as ffi;
 import 'package:twaindsm/twaindsm.dart';
 
@@ -25,6 +26,12 @@ abstract class _TWStruct<T extends Struct> {
   Uint8List get _nativeList => _pointer.asTypedList(size);
 
   ByteData get _byteData => _nativeList.buffer.asByteData();
+
+  String debugHex() => hex.encode(_nativeList);
+
+  int _getUint8(int offset) => _byteData.getUint8(offset);
+
+  void _setUint8(int offset, int i) => _byteData.setUint8(offset, i);
 
   int _getUint16(int offset) => _byteData.getUint16(offset, Endian.host);
 
@@ -191,4 +198,40 @@ class TWIdentity extends _TWStruct<TW_IDENTITY> {
       'ProductName': ProductName,
     }.toString();
   }
+}
+
+// typedef struct TW_ENUMERATION {
+//    TW_UINT16  ItemType;
+//    TW_UINT32  NumItems;
+//    TW_UINT32  CurrentIndex;
+//    TW_UINT32  DefaultIndex;
+//    TW_UINT8   ItemList[1];
+// };
+class TWEnumeration extends _TWStruct<pTW_ENUMERATION> {
+  static const _size = 2 + 4 + 4 + 4 + 1;
+
+  TWEnumeration() : super(_size);
+
+  TWEnumeration.fromAddress(int address): super._fromAddress(address);
+
+  @override
+  int get size => _size;
+
+  int get ItemType => _getUint16(0);
+
+  set ItemType(int i) => _setUint16(0, i);
+
+  int get NumItems => _getUint32(2);
+
+  set NumItems(int i) => _setUint32(2, i);
+
+  int get CurrentIndex => _getUint32(6);
+
+  set CurrentIndex(int i) => _setUint32(6, i);
+
+  int get DefaultIndex => _getUint32(10);
+
+  set DefaultIndex(int i) => _setUint32(10, i);
+
+  int getItemListAddress() => _pointer.address + 14;
 }
