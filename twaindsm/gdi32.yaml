@@ -1,0 +1,11 @@
+name: Gid32
+description: Bindings to `gdi32.h`.
+output: 'lib/gdi32.dart'
+headers:
+  entry-points:
+    - 'twaindsm/gdi32_.h'
+  include-directives: # include only these header files and necessary structs from other header files
+    - '**gdi32_.h'
+size-map:
+  long: 4
+  unsigned long: 4

@@ -12,8 +12,8 @@ class TwainDsm {
   TwainDsm(ffi.DynamicLibrary dynamicLibrary) : _dylib = dynamicLibrary;
 
   int DSM_Entry(
-    ffi.Pointer<TW_IDENTITY> pOrigin,
-    ffi.Pointer<TW_IDENTITY> pDest,
+    ffi.Pointer<pTW_IDENTITY> pOrigin,
+    ffi.Pointer<pTW_IDENTITY> pDest,
     int DG,
     int DAT,
     int MSG,
@@ -34,7 +34,7 @@ class TwainDsm {
   _dart_DSM_Entry _DSM_Entry;
 
   int DS_Entry(
-    ffi.Pointer<TW_IDENTITY> pOrigin,
+    ffi.Pointer<pTW_IDENTITY> pOrigin,
     int DG,
     int DAT,
     int MSG,
@@ -54,8 +54,8 @@ class TwainDsm {
   _dart_DS_Entry _DS_Entry;
 
   int TWAIN_Callback(
-    ffi.Pointer<TW_IDENTITY> pOrigin,
-    ffi.Pointer<TW_IDENTITY> pDest,
+    ffi.Pointer<pTW_IDENTITY> pOrigin,
+    ffi.Pointer<pTW_IDENTITY> pDest,
     int DG,
     int DAT,
     int MSG,
@@ -231,9 +231,9 @@ class pTW_FILESYSTEM extends ffi.Struct {}
 
 class pTW_GRAYRESPONSE extends ffi.Struct {}
 
-class TW_VERSION extends ffi.Struct {}
+class pTW_VERSION extends ffi.Struct {}
 
-class TW_IDENTITY extends ffi.Struct {}
+class pTW_IDENTITY extends ffi.Struct {}
 
 class pTW_IMAGEINFO extends ffi.Struct {}
 
@@ -332,7 +332,7 @@ class pTW_SETUPMEMXFER extends ffi.Struct {
   int Preferred;
 }
 
-class TW_STATUS extends ffi.Struct {
+class pTW_STATUS extends ffi.Struct {
   @ffi.Uint16()
   int ConditionCode;
 
@@ -411,7 +411,7 @@ class pTW_CAPEXT extends ffi.Struct {
 
 class pTW_SETUPAUDIOFILEXFER extends ffi.Struct {}
 
-class TW_ENTRYPOINT extends ffi.Struct {
+class pTW_ENTRYPOINT extends ffi.Struct {
   @ffi.Uint32()
   int Size;
 
@@ -2853,8 +2853,8 @@ const int TWCB_CLEAR = 1;
 const int TWCB_NOCLEAR = 2;
 
 typedef _c_DSM_Entry = ffi.Uint16 Function(
-  ffi.Pointer<TW_IDENTITY> pOrigin,
-  ffi.Pointer<TW_IDENTITY> pDest,
+  ffi.Pointer<pTW_IDENTITY> pOrigin,
+  ffi.Pointer<pTW_IDENTITY> pDest,
   ffi.Uint32 DG,
   ffi.Uint16 DAT,
   ffi.Uint16 MSG,
@@ -2862,8 +2862,8 @@ typedef _c_DSM_Entry = ffi.Uint16 Function(
 );
 
 typedef _dart_DSM_Entry = int Function(
-  ffi.Pointer<TW_IDENTITY> pOrigin,
-  ffi.Pointer<TW_IDENTITY> pDest,
+  ffi.Pointer<pTW_IDENTITY> pOrigin,
+  ffi.Pointer<pTW_IDENTITY> pDest,
   int DG,
   int DAT,
   int MSG,
@@ -2871,7 +2871,7 @@ typedef _dart_DSM_Entry = int Function(
 );
 
 typedef _c_DS_Entry = ffi.Uint16 Function(
-  ffi.Pointer<TW_IDENTITY> pOrigin,
+  ffi.Pointer<pTW_IDENTITY> pOrigin,
   ffi.Uint32 DG,
   ffi.Uint16 DAT,
   ffi.Uint16 MSG,
@@ -2879,7 +2879,7 @@ typedef _c_DS_Entry = ffi.Uint16 Function(
 );
 
 typedef _dart_DS_Entry = int Function(
-  ffi.Pointer<TW_IDENTITY> pOrigin,
+  ffi.Pointer<pTW_IDENTITY> pOrigin,
   int DG,
   int DAT,
   int MSG,
@@ -2887,8 +2887,8 @@ typedef _dart_DS_Entry = int Function(
 );
 
 typedef _c_TWAIN_Callback = ffi.Uint16 Function(
-  ffi.Pointer<TW_IDENTITY> pOrigin,
-  ffi.Pointer<TW_IDENTITY> pDest,
+  ffi.Pointer<pTW_IDENTITY> pOrigin,
+  ffi.Pointer<pTW_IDENTITY> pDest,
   ffi.Uint32 DG,
   ffi.Uint16 DAT,
   ffi.Uint16 MSG,
@@ -2896,8 +2896,8 @@ typedef _c_TWAIN_Callback = ffi.Uint16 Function(
 );
 
 typedef _dart_TWAIN_Callback = int Function(
-  ffi.Pointer<TW_IDENTITY> pOrigin,
-  ffi.Pointer<TW_IDENTITY> pDest,
+  ffi.Pointer<pTW_IDENTITY> pOrigin,
+  ffi.Pointer<pTW_IDENTITY> pDest,
   int DG,
   int DAT,
   int MSG,
@@ -2937,8 +2937,8 @@ typedef _dart_DSM_MemUnlock = void Function(
 );
 
 typedef DSMENTRYPROC = ffi.Uint16 Function(
-  ffi.Pointer<TW_IDENTITY>,
-  ffi.Pointer<TW_IDENTITY>,
+  ffi.Pointer<pTW_IDENTITY>,
+  ffi.Pointer<pTW_IDENTITY>,
   ffi.Uint32,
   ffi.Uint16,
   ffi.Uint16,

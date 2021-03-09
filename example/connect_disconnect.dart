@@ -1,7 +1,9 @@
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart' as ffi;
+import 'package:twaindsm/gdi32.dart';
 import 'package:twaindsm/twaindsm.dart';
 import 'package:twaindsm/struct.dart';
 import 'package:twaindsm/user32.dart';
@@ -16,34 +18,34 @@ final twainDsm = TwainDsm(DynamicLibrary.open(
     // 'C:\\Windows\\SysWOW64\\TWAINDSM.dll'));
 
 void main(List<String> arguments) {
-  var myInfo = TWIdentity();
+  var myInfoStruct = TWIdentity();
   var consolePtr = ffi.allocate<Int32>();
-  var entryPointPtr = ffi.allocate<TW_ENTRYPOINT>();
+  var entryPointPtr = ffi.allocate<pTW_ENTRYPOINT>();
 
-  fillIdentity(myInfo);
+  fillIdentity(myInfoStruct);
   consolePtr.value = GetConsoleWindow();
 
   try {
-    if (!connectDSM(myInfo.pointer, consolePtr)) {
+    if (!connectDSM(myInfoStruct.pointer, consolePtr)) {
       return;
     }
     print('connectDSM success');
 
-    if (myInfo.SupportedGroups & DF_DSM2 == DF_DSM2) {
-      if (!getEntryPoint(myInfo.pointer, entryPointPtr)) {
+    if (myInfoStruct.SupportedGroups & DF_DSM2 == DF_DSM2) {
+      if (!getEntryPoint(myInfoStruct.pointer, entryPointPtr)) {
         return;
       }
       print('getEntryPoint success');
     }
 
-    operateDS(myInfo.pointer, entryPointPtr);
+    operateDS(myInfoStruct.pointer, entryPointPtr);
 
-    if (!disconnectDSM(myInfo.pointer, consolePtr)) {
+    if (!disconnectDSM(myInfoStruct.pointer, consolePtr)) {
       return;
     }
     print('disconnectDSM success');
   } finally {
-    myInfo.dispose();
+    myInfoStruct.dispose();
     ffi.free(consolePtr);
     ffi.free(entryPointPtr);
   }
@@ -66,7 +68,7 @@ void fillIdentity(TWIdentity myInfo) {
 }
 
 bool connectDSM(
-  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<pTW_IDENTITY> myInfoPtr,
   Pointer<Int32> parentPtr,
 ) {
   var connect = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL, DAT_PARENT,
@@ -79,7 +81,7 @@ bool connectDSM(
 }
 
 bool disconnectDSM(
-  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<pTW_IDENTITY> myInfoPtr,
   Pointer<Int32> parentPtr,
 ) {
   var disconnect = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
@@ -92,10 +94,10 @@ bool disconnectDSM(
 }
 
 bool getEntryPoint(
-  Pointer<TW_IDENTITY> myInfoPtr,
-  Pointer<TW_ENTRYPOINT> entryPointPtr,
+  Pointer<pTW_IDENTITY> myInfoPtr,
+  Pointer<pTW_ENTRYPOINT> entryPointPtr,
 ) {
-  entryPointPtr.ref.Size = sizeOf<TW_ENTRYPOINT>();
+  entryPointPtr.ref.Size = sizeOf<pTW_ENTRYPOINT>();
   var entryPoint = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
       DAT_ENTRYPOINT, MSG_GET, entryPointPtr.cast());
   if (entryPoint != TWRC_SUCCESS) {
@@ -106,32 +108,32 @@ bool getEntryPoint(
 }
 
 void operateDS(
-  Pointer<TW_IDENTITY> myInfoPtr,
-  Pointer<TW_ENTRYPOINT> entryPointPtr,
+  Pointer<pTW_IDENTITY> myInfoPtr,
+  Pointer<pTW_ENTRYPOINT> entryPointPtr,
 ) {
-  var dataSourceList = iterateDataSource(myInfoPtr);
+  var dataSourceStructList = iterateDataSource(myInfoPtr);
   try {
-    var dataSource = dataSourceList[2];
-    if (!loadDS(myInfoPtr, dataSource.pointer)) {
+    var dataSourceStruct = dataSourceStructList[2];
+    if (!loadDS(myInfoPtr, dataSourceStruct.pointer)) {
       return;
     }
     print('loadDS success');
 
-    opDS(myInfoPtr, dataSource.pointer, entryPointPtr);
+    opDS(myInfoPtr, dataSourceStruct.pointer, entryPointPtr);
 
-    if (!unloadDS(myInfoPtr, dataSource.pointer)) {
+    if (!unloadDS(myInfoPtr, dataSourceStruct.pointer)) {
       return;
     }
     print('unloadDS success');
   } finally {
-    dataSourceList.forEach((e) => e.dispose());
+    dataSourceStructList.forEach((e) => e.dispose());
   }
 }
 
 void opDS(
-  Pointer<TW_IDENTITY> myInfoPtr,
-  Pointer<TW_IDENTITY> dataSourcePtr,
-  Pointer<TW_ENTRYPOINT> entryPointPtr,
+  Pointer<pTW_IDENTITY> myInfoPtr,
+  Pointer<pTW_IDENTITY> dataSourcePtr,
+  Pointer<pTW_ENTRYPOINT> entryPointPtr,
 ) {
   if (!enableDS(myInfoPtr, dataSourcePtr, user32.GetDesktopWindow())) {
     return;
@@ -144,10 +146,10 @@ void opDS(
     var xferMechPtr = allocateCAP(myInfoPtr, dataSourcePtr, ICAP_XFERMECH);
 
     // startScan(dataSourcePtr, xferMechPtr);
-    var xferMechValue = getCurrent(dataSourcePtr, xferMechPtr, entryPointPtr);
+    var xferMechValue = getCurrent(xferMechPtr, entryPointPtr);
     switch (xferMechValue) {
       case TWSX_NATIVE:
-        initiateTransfer_Native();
+        initiateTransfer_Native(myInfoPtr, dataSourcePtr, entryPointPtr);
         break;
     }
 
@@ -159,8 +161,8 @@ void opDS(
 }
 
 int pollTWMessage(
-  Pointer<TW_IDENTITY> myInfoPtr,
-  Pointer<TW_IDENTITY> dataSourcePtr,
+  Pointer<pTW_IDENTITY> myInfoPtr,
+  Pointer<pTW_IDENTITY> dataSourcePtr,
 ) {
   var msgPtr = ffi.allocate<MSG>();
   var eventPtr = ffi.allocate<pTW_EVENT>();
@@ -196,7 +198,7 @@ int pollTWMessage(
   return dsMessage;
 }
 
-List<TWIdentity> iterateDataSource(Pointer<TW_IDENTITY> myInfoPtr) {
+List<TWIdentity> iterateDataSource(Pointer<pTW_IDENTITY> myInfoPtr) {
   var dataSource = TWIdentity();
   var getFirst = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
         DAT_IDENTITY, MSG_GETFIRST, dataSource.pointer.cast());
@@ -232,8 +234,8 @@ List<TWIdentity> iterateDataSource(Pointer<TW_IDENTITY> myInfoPtr) {
 }
 
 bool loadDS(
-  Pointer<TW_IDENTITY> myInfoPtr,
-  Pointer<TW_IDENTITY> dataSourcePtr,
+  Pointer<pTW_IDENTITY> myInfoPtr,
+  Pointer<pTW_IDENTITY> dataSourcePtr,
 ) {
   var openDS = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
       DAT_IDENTITY, MSG_OPENDS, dataSourcePtr.cast());
@@ -247,8 +249,8 @@ bool loadDS(
 }
 
 bool unloadDS(
-  Pointer<TW_IDENTITY> myInfoPtr,
-  Pointer<TW_IDENTITY> dataSourcePtr,
+  Pointer<pTW_IDENTITY> myInfoPtr,
+  Pointer<pTW_IDENTITY> dataSourcePtr,
 ) {
   var closeDS = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
       DAT_IDENTITY, MSG_CLOSEDS, dataSourcePtr.cast());
@@ -262,8 +264,8 @@ bool unloadDS(
 }
 
 Pointer<pTW_CAPABILITY> allocateCAP(
-  Pointer<TW_IDENTITY> myInfoPtr,
-  Pointer<TW_IDENTITY> dataSourcePtr,
+  Pointer<pTW_IDENTITY> myInfoPtr,
+  Pointer<pTW_IDENTITY> dataSourcePtr,
   int cap,
 ) {
   var capability = ffi.allocate<pTW_CAPABILITY>();
@@ -276,13 +278,12 @@ Pointer<pTW_CAPABILITY> allocateCAP(
     ffi.free(capability);
     return null;
   }
-  print('allocateCAP ${capability.ref.Cap}, ${capability.ref.ConType}');
   return capability;
 }
 
 bool enableDS(
-  Pointer<TW_IDENTITY> myInfoPtr,
-  Pointer<TW_IDENTITY> dataSourcePtr,
+  Pointer<pTW_IDENTITY> myInfoPtr,
+  Pointer<pTW_IDENTITY> dataSourcePtr,
   Pointer<HWND> windowsPtr,
 ) {
   var userInterfacePtr = ffi.allocate<pTW_USERINTERFACE>();
@@ -303,8 +304,8 @@ bool enableDS(
 }
 
 void disableDS(
-  Pointer<TW_IDENTITY> myInfoPtr,
-  Pointer<TW_IDENTITY> dataSourcePtr,
+  Pointer<pTW_IDENTITY> myInfoPtr,
+  Pointer<pTW_IDENTITY> dataSourcePtr,
 ) {
   var userInterfacePtr = ffi.allocate<pTW_USERINTERFACE>();
   try {
@@ -318,14 +319,123 @@ void disableDS(
   }
 }
 
-void initiateTransfer_Native() {
+void initiateTransfer_Native(
+  Pointer<pTW_IDENTITY> myInfoPtr,
+  Pointer<pTW_IDENTITY> dataSourcePtr,
+  Pointer<pTW_ENTRYPOINT> entryPointPtr,
+) {
   print('initiateTransfer_Native');
+
+  var imageInfoStruct = TWImageInfo();
+  var containerRefPtr = ffi.allocate<Pointer<Void>>();
+
+  var pendingXfers = true;
+  var xferNum = 0;
+  while (pendingXfers) {
+    xferNum++;
+    if (!updateIMAGEINFO(myInfoPtr, dataSourcePtr, imageInfoStruct.pointer)) {
+      break;
+    }
+    print('imageInfoStruct $imageInfoStruct');
+
+    var getNativeXfer = twainDsm.DSM_Entry(myInfoPtr, dataSourcePtr, DG_IMAGE, DAT_IMAGENATIVEXFER, MSG_GET, containerRefPtr.cast());
+    print('getNativeXfer $getNativeXfer');
+    if (getNativeXfer == TWRC_CANCEL) {
+      var twcc = describeConditionCode(getTWCC(dataSourcePtr));
+      print('Canceled transfer image $twcc');
+      break;
+    } else if (getNativeXfer == TWRC_FAILURE) {
+      var twcc = describeConditionCode(getTWCC(dataSourcePtr));
+      print('Failed to transfer image $twcc');
+      break;
+    } else if (getNativeXfer != TWRC_XFERDONE) {
+      continue;
+    }
+    
+    var containerPtr = containerRefPtr.value;
+    var infoHeaderPtr = entryPointPtr.memLock(containerPtr).cast<BITMAPINFOHEADER>();
+    try {
+      if (infoHeaderPtr == nullptr) {
+        break;
+      }
+      var ref = infoHeaderPtr.ref;
+      print('${ref.biSize}, ${ref.biWidth}, ${ref.biHeight}');
+      print('${ref.biPlanes}, ${ref.biBitCount}, ${ref.biCompression}');
+      print('${ref.biXPelsPerMeter}, ${ref.biYPelsPerMeter}, ${ref.biClrUsed}, ${ref.biClrImportant}');
+      if (infoHeaderPtr.getPaletteSize() == null) {
+        break;
+      }
+      saveToFile(infoHeaderPtr, 'FROM_SCANNER_${xferNum.toString().padLeft(6, '0')}.bmp');
+    } finally {
+      entryPointPtr.memUnlock(containerPtr);
+      entryPointPtr.memFree(containerPtr);
+    }
+
+    // TODO updateEXTIMAGEINFO();
+
+    var pendingXfersPtr = ffi.allocate<pTW_PENDINGXFERS>();
+    var getPendingXfers = twainDsm.DSM_Entry(myInfoPtr, dataSourcePtr, DG_CONTROL, DAT_PENDINGXFERS, MSG_ENDXFER, pendingXfersPtr.cast());
+    if (getPendingXfers == TWRC_SUCCESS) {
+      print('app: Remaining images to transfer: ${pendingXfersPtr.ref.Count}');
+      pendingXfers = pendingXfersPtr.ref.Count > 0;
+    } else {
+      var twcc = describeConditionCode(getTWCC(dataSourcePtr));
+      print('Failed to properly end the transfer $twcc');
+      pendingXfers = false;
+    }
+  }
+
+  if (pendingXfers) {
+    DoAbortXfer();
+  }
+
+  imageInfoStruct.dispose();
+  ffi.free(containerRefPtr);
+
+  print('app: DONE!');
+}
+
+bool updateIMAGEINFO(
+  Pointer<pTW_IDENTITY> myInfoPtr,
+  Pointer<pTW_IDENTITY> dataSourcePtr,
+  Pointer<pTW_IMAGEINFO> imageInfoPtr,
+) {
+  var twrc = twainDsm.DSM_Entry(myInfoPtr, dataSourcePtr, DG_IMAGE, DAT_IMAGEINFO, MSG_GET, imageInfoPtr.cast());
+  if (twrc != TWRC_SUCCESS) {
+    var twcc = describeConditionCode(getTWCC(dataSourcePtr));
+    print('Error while trying to get the image information! $twcc');
+    return false;
+  }
+  return true;
+}
+
+void saveToFile(Pointer<BITMAPINFOHEADER> infoHeaderPtr, String path) {
+  var imageOffset = sizeOf<BITMAPINFOHEADER>() + sizeOf<RGBQUAD>() * infoHeaderPtr.getPaletteSize();
+  print('imageOffset $imageOffset');
+
+  if (infoHeaderPtr.ref.biSizeImage == 0) {
+    print('TODO biSizeImage');
+  }
+  var contentSize = imageOffset + infoHeaderPtr.ref.biSizeImage;
+  print('contentSize $contentSize');
+
+  var fileHeaderPtr = TWBitmapFileHeader();
+  fileHeaderPtr.bfType = 0x4d42; // 'MB'
+  fileHeaderPtr.bfSize = TWBitmapFileHeader.SIZE + contentSize;
+  fileHeaderPtr.bfOffBits = TWBitmapFileHeader.SIZE + imageOffset;
+
+  var file = File(path);
+  file.writeAsBytesSync(fileHeaderPtr.pointer.cast<Uint8>().asTypedList(TWBitmapFileHeader.SIZE));
+  file.writeAsBytesSync(infoHeaderPtr.cast<Uint8>().asTypedList(contentSize), mode: FileMode.append);
+}
+
+void DoAbortXfer() {
+  // TODO
 }
 
 int getCurrent(
-  Pointer<TW_IDENTITY> dataSourcePtr,
   Pointer<pTW_CAPABILITY> cap,
-  Pointer<TW_ENTRYPOINT> entryPointPtr,
+  Pointer<pTW_ENTRYPOINT> entryPointPtr,
 ) {
   if (cap.ref.hContainer == nullptr) {
     return null;
@@ -333,12 +443,8 @@ int getCurrent(
 
   var containerPtr = entryPointPtr.memLock(cap.ref.hContainer);
   try {
-    print('getCurrent ${cap.ref.Cap}, ${cap.ref.ConType}');
     if (cap.ref.ConType == TWON_ENUMERATION) {
-      // var cast = cap.ref.hContainer.cast<Uint8>().asTypedList(2 + 4 + 4 + 4);
-      // print('cast ' + hex.encode(cast));
       var enumerationPtr = TWEnumeration.fromAddress(containerPtr.address);
-      print('enumerationPtr ${enumerationPtr.debugHex()}');
       var itemListPtr = Pointer.fromAddress(enumerationPtr.getItemListAddress());
       switch (enumerationPtr.ItemType) {
         case TWTY_INT32:
@@ -368,8 +474,8 @@ int getCurrent(
 
 }
 
-int getTWCC(Pointer<TW_IDENTITY> dataSourcePtr) {
-  var statusPtr = ffi.allocate<TW_STATUS>();
+int getTWCC(Pointer<pTW_IDENTITY> dataSourcePtr) {
+  var statusPtr = ffi.allocate<pTW_STATUS>();
   try {
     var getStatus = twainDsm.DSM_Entry(dataSourcePtr, nullptr, DG_CONTROL,
         DAT_STATUS, MSG_GET, statusPtr.cast());
@@ -442,7 +548,7 @@ String describeConditionCode(int twcc) {
   }
 }
 
-extension TWEntryPointPointer on Pointer<TW_ENTRYPOINT> {
+extension TWEntryPointPointer on Pointer<pTW_ENTRYPOINT> {
   Pointer<Void> Function(int) get memAllocate => ref.DSM_MemAllocate.asFunction();
 
   void Function(Pointer<Void>) get memFree => ref.DSM_MemFree.asFunction();
@@ -450,4 +556,20 @@ extension TWEntryPointPointer on Pointer<TW_ENTRYPOINT> {
   Pointer<Void> Function(Pointer<Void>) get memLock => ref.DSM_MemLock.asFunction();
 
   void Function(Pointer<Void>) get memUnlock => ref.DSM_MemUnlock.asFunction();
+}
+
+extension BitmapInfoHeaderPointer on Pointer<BITMAPINFOHEADER> {
+  int getPaletteSize() {
+    print('ref.biBitCount ${ref.biBitCount}');
+    switch (ref.biBitCount) {
+      case 1:
+        return 2;
+      case 8:
+        return 256;
+      case 24:
+        return 0;
+      default:
+        return null;
+    }
+  }
 }

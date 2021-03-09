@@ -33,10 +33,14 @@ abstract class _TWStruct<T extends Struct> {
 
   void _setUint8(int offset, int i) => _byteData.setUint8(offset, i);
 
+  int _getInt16(int offset) => _byteData.getInt16(offset, Endian.host);
+
   int _getUint16(int offset) => _byteData.getUint16(offset, Endian.host);
 
   void _setUint16(int offset, int i) =>
       _byteData.setUint16(offset, i, Endian.host);
+
+  int _getInt32(int offset) => _byteData.getInt32(offset, Endian.host);
 
   int _getUint32(int offset) => _byteData.getUint32(offset, Endian.host);
 
@@ -62,7 +66,7 @@ abstract class _TWStruct<T extends Struct> {
 //    TW_UINT16  Country;
 //    TW_STR32   Info;
 // };
-class TWVersion extends _TWStruct<TW_VERSION> {
+class TWVersion extends _TWStruct<pTW_VERSION> {
   static const _size = 2 + 2 + 2 + 2 + 34;
 
   TWVersion._fromAddress(int ptr) : super._fromAddress(ptr);
@@ -119,7 +123,7 @@ class TWVersion extends _TWStruct<TW_VERSION> {
 //     TW_STR32   	   ProductFamily;
 //     TW_STR32   	   ProductName;
 // };
-class TWIdentity extends _TWStruct<TW_IDENTITY> {
+class TWIdentity extends _TWStruct<pTW_IDENTITY> {
   static const _size = 4 + TWVersion._size + 2 + 2 + 4 + 34 + 34 + 34;
 
   TWIdentity() : super(_size);
@@ -234,4 +238,104 @@ class TWEnumeration extends _TWStruct<pTW_ENUMERATION> {
   set DefaultIndex(int i) => _setUint32(10, i);
 
   int getItemListAddress() => _pointer.address + 14;
+}
+
+// typedef struct TW_IMAGEINFO {
+//    TW_FIX32   XResolution;
+//    TW_FIX32   YResolution;
+//    TW_INT32   ImageWidth;
+//    TW_INT32   ImageLength;
+//    TW_INT16   SamplesPerPixel;
+//    TW_INT16   BitsPerSample[8];
+//    TW_INT16   BitsPerPixel;
+//    TW_BOOL    Planar;
+//    TW_INT16   PixelType;
+//    TW_UINT16  Compression;
+// }
+class TWImageInfo extends _TWStruct<pTW_IMAGEINFO> {
+  static const _size = 4 + 4 + 4 + 4 + 2 + 2 * 8 + 2 + 2 + 2 + 2;
+
+  TWImageInfo() : super(_size);
+
+  @override
+  int get size => _size;
+
+  Pointer<pTW_FIX32> get XResolution => Pointer.fromAddress(pointer.address);
+
+  Pointer<pTW_FIX32> get YResolution => Pointer.fromAddress(pointer.address + 4);
+
+  int get ImageWidth => _getInt32(4 + 4);
+
+  int get ImageLength => _getInt32(4 + 4 + 4);
+
+  int get SamplesPerPixel => _getInt16(4 + 4 + 4 + 4);
+
+  // TODO List<int> get BitsPerSample => null;
+
+  int get BitsPerPixel => _getInt16(4 + 4 + 4 + 4 + 2 + 2 * 8);
+
+  int get Planar => _getUint16(4 + 4 + 4 + 4 + 2 + 2 * 8 + 2);
+
+  int get PixelType => _getUint16(4 + 4 + 4 + 4 + 2 + 2 * 8 + 2 + 2);
+
+  int get Compression => _getUint16(4 + 4 + 4 + 4 + 2 + 2 * 8 + 2 + 2 + 2);
+
+  @override
+  String toString() {
+    return {
+      'XResolution': {
+        'Whole': XResolution.ref.Whole,
+        'Frac': XResolution.ref.Frac,
+      },
+      'YResolution': {
+        'Whole': YResolution.ref.Whole,
+        'Frac': YResolution.ref.Frac,
+      },
+      'ImageWidth': ImageWidth,
+      'ImageLength': ImageLength,
+      'SamplesPerPixel': SamplesPerPixel,
+      // TODO BitsPerSample
+      'BitsPerPixel': BitsPerPixel,
+      'Planar': Planar,
+      'PixelType': PixelType,
+      'Compression': Compression,
+    }.toString();
+  }
+}
+
+// TODO https://github.com/dart-lang/sdk/issues/45239
+// typedef struct tagBITMAPFILEHEADER {
+//         WORD    bfType;
+//         DWORD   bfSize;
+//         WORD    bfReserved1;
+//         WORD    bfReserved2;
+//         DWORD   bfOffBits;
+// } BITMAPFILEHEADER;
+class TWBitmapFileHeader extends _TWStruct<Struct> {
+  static const SIZE = 2 + 4 + 2 + 2 + 4;
+
+  TWBitmapFileHeader() : super(SIZE);
+
+  @override
+  int get size => SIZE;
+
+  int get bfType => _getUint16(0);
+
+  set bfType(int i) => _setUint16(0, i);
+
+  int get bfSize => _getUint32(2);
+
+  set bfSize(int i) => _setUint32(2, i);
+
+  int get bfReserved1 => _getUint16(2 + 4);
+
+  set bfReserved1(int i) => _setUint16(2 + 4, i);
+
+  int get bfReserved2 => _getUint16(2 + 4 + 2);
+
+  set bfReserved2(int i) => _setUint16(2 + 4 + 2, i);
+
+  int get bfOffBits => _getUint32(2 + 4 + 2 + 2);
+
+  set bfOffBits(int i) => _setUint32(2 + 4 + 2 + 2, i);
 }

@@ -418,18 +418,16 @@ typedef struct {
 } TW_GRAYRESPONSE, FAR * pTW_GRAYRESPONSE;
 
 /* A general way to describe the version of software that is running. */
-struct TW_VERSION {
+typedef struct {
    TW_UINT16  MajorNum;
    TW_UINT16  MinorNum;
    TW_UINT16  Language;
    TW_UINT16  Country;
    TW_STR32   Info;
-};
-
-typedef TW_VERSION * pTW_VERSION;
+} TW_VERSION, FAR * pTW_VERSION;
 
 /* Provides identification information about a TWAIN entity.*/
-struct TW_IDENTITY {
+typedef struct {
     #if defined(__APPLE__) /* cf: Mac version of TWAIN.h */
         TW_MEMREF  Id;
     #else
@@ -442,9 +440,7 @@ struct TW_IDENTITY {
     TW_STR32   	   Manufacturer;
     TW_STR32   	   ProductFamily;
     TW_STR32   	   ProductName;
-};
-
-typedef TW_IDENTITY * pTW_IDENTITY;
+} TW_IDENTITY, FAR * pTW_IDENTITY;
 
 /* Describes the "real" image data, that is, the complete image being transferred between the Source and application. */
 typedef struct {
@@ -575,12 +571,13 @@ typedef struct {
 } TW_SETUPMEMXFER, FAR * pTW_SETUPMEMXFER;
 
 /* Describes the status of a source. */
-struct TW_STATUS {
+typedef struct {
    TW_UINT16  ConditionCode;
-   TW_UINT16  Data;
-};
-
-typedef TW_STATUS * pTW_STATUS;
+   union {
+     TW_UINT16  Data;
+     TW_UINT16  Reserved;
+   };
+} TW_STATUS, FAR * pTW_STATUS;
 
 /* Translates the contents of Status into a localized UTF8string. */
 typedef struct {
@@ -2209,16 +2206,14 @@ typedef void (TW_CALLINGSTYLE *DSM_MEMUNLOCK)(TW_HANDLE _handle);
 #endif  /* __cplusplus */
 
 /* DAT_ENTRYPOINT. returns essential entry points. */
-struct TW_ENTRYPOINT {
+typedef struct {
    TW_UINT32         Size;
    DSMENTRYPROC      DSM_Entry;
    DSM_MEMALLOCATE   DSM_MemAllocate;
    DSM_MEMFREE       DSM_MemFree;
    DSM_MEMLOCK       DSM_MemLock;
    DSM_MEMUNLOCK     DSM_MemUnlock;
-};
-
-typedef TW_ENTRYPOINT * pTW_ENTRYPOINT;
+} TW_ENTRYPOINT, FAR * pTW_ENTRYPOINT;
 
 /* DAT_FILTER*/
 typedef struct {
