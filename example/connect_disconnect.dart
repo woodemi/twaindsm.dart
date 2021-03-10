@@ -4,10 +4,13 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 import 'package:twaindsm/structs.dart';
 import 'package:twaindsm/twaindsm.dart';
+import 'package:twaindsm/user32.dart';
 import 'package:twaindsm/utils.dart';
 import 'package:win32/win32.dart';
 
 final bool kIsX64 = sizeOf<Pointer>() == 8;
+
+final user32 = User32(DynamicLibrary.open('user32.dll'));
 
 final twainDsm = TwainDsm(DynamicLibrary.open(kIsX64
     ? '${Directory.current.path}/twaindsm/TWAINDSM64-2.4.3.dll'
@@ -149,6 +152,8 @@ void operateDataSource(Pointer<TW_IDENTITY> myInfoPtr) {
     }
     print('loadDS success');
 
+    opDS(myInfoPtr, dataSourceStruct.pointer);
+
     if (!unloadDS(myInfoPtr, dataSourceStruct.pointer)) {
       return;
     }
@@ -184,4 +189,59 @@ bool unloadDS(
     return false;
   }
   return true;
+}
+
+void opDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+) {
+  if (!enableDS(myInfoPtr, dataSourcePtr, user32.GetDesktopWindow())) {
+    return;
+  }
+  print('enableDS success');
+
+  if (!disableDS(myInfoPtr, dataSourcePtr)) {
+    return;
+  }
+  print('disableDS success');
+}
+
+bool enableDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+  Pointer<HWND> windowsPtr,
+) {
+  var userInterfacePtr = calloc<TW_USERINTERFACE>();
+  try {
+    userInterfacePtr.ref.ShowUI = FALSE;
+    userInterfacePtr.ref.ModalUI = TRUE;
+    userInterfacePtr.ref.hParent = windowsPtr.cast();
+    var twrc = twainDsm.DSM_Entry(myInfoPtr, dataSourcePtr, DG_CONTROL, DAT_USERINTERFACE, MSG_ENABLEDS, userInterfacePtr.cast());
+    if (twrc != TWRC_SUCCESS && twrc != TWRC_CHECKSTATUS) {
+      var twcc = twainDsm.getConditionCodeString(dataSourcePtr);
+      print('Cannot enable source $twcc');
+      return false;
+    }
+    return true;
+  } finally {
+    calloc.free(userInterfacePtr);
+  }
+}
+
+bool disableDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+) {
+  var userInterfacePtr = calloc<TW_USERINTERFACE>();
+  try {
+    var twrc = twainDsm.DSM_Entry(myInfoPtr, dataSourcePtr, DG_CONTROL, DAT_USERINTERFACE, MSG_DISABLEDS, userInterfacePtr.cast());
+    if (twrc != TWRC_SUCCESS) {
+      var twcc = twainDsm.getConditionCodeString(dataSourcePtr);
+      print('Cannot disable source $twcc');
+      return false;
+    }
+    return true;
+  } finally {
+    calloc.free(userInterfacePtr);
+  }
 }

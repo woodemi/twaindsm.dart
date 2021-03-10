@@ -1,0 +1,8 @@
+name: User32
+description: Bindings to `user32.h`.
+output: 'lib/user32.dart'
+headers:
+  entry-points:
+    - 'twaindsm/user32_.h'
+  include-directives: # include only these header files and necessary structs from other header files
+    - '**user32_.h'
