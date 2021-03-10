@@ -198,6 +198,12 @@ void opDS(
   }
   print('enableDS success');
 
+  var dsMessage = pollTWMessage(myInfoPtr, dataSourcePtr);
+
+  if (dsMessage == MSG_XFERREADY) {
+    print('dsMessage $dsMessage');
+  }
+
   if (!disableDS(myInfoPtr, dataSourcePtr)) {
     return;
   }
@@ -242,4 +248,42 @@ bool disableDS(
   } finally {
     calloc.free(userInterfacePtr);
   }
+}
+
+int pollTWMessage(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+) {
+  var msgPtr = calloc<MSG>();
+  var eventPtr = calloc<TW_EVENT>();
+  var dsMessage = MSG_NULL;
+  while (dsMessage == MSG_NULL) {
+    if (GetMessage(msgPtr, 0, 0, 0) != TRUE) {
+      break; // WM_QUIT
+    }
+  
+    eventPtr.ref.pEvent = msgPtr.cast();
+    eventPtr.ref.TWMessage = MSG_NULL;
+    var processEvent = twainDsm.DSM_Entry(myInfoPtr, dataSourcePtr, DG_CONTROL, DAT_EVENT, MSG_PROCESSEVENT, eventPtr.cast());
+    if (processEvent != TWRC_DSEVENT) {
+      TranslateMessage(msgPtr);
+      DispatchMessage(msgPtr);
+      continue;
+    }
+  
+    switch (eventPtr.ref.TWMessage) {
+      case MSG_XFERREADY:
+      case MSG_CLOSEDSREQ:
+      case MSG_CLOSEDSOK:
+      case MSG_NULL:
+        dsMessage = eventPtr.ref.TWMessage;
+        break;
+      default:
+        print('Unknown message in MSG_PROCESSEVENT loop');
+        break;
+    }
+  }
+  calloc.free(eventPtr);
+  calloc.free(msgPtr);
+  return dsMessage;
 }
