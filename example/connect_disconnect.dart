@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 import 'package:twaindsm/structs.dart';
 import 'package:twaindsm/twaindsm.dart';
+import 'package:twaindsm/utils.dart';
 import 'package:win32/win32.dart';
 
 final bool kIsX64 = sizeOf<Pointer>() == 8;
@@ -31,6 +32,13 @@ void main(List<String> arguments) {
         return;
       }
       print('getEntryPoint success');
+    }
+
+    var dataSourceStructList = iterateDataSource(myInfoStruct.pointer);
+    try {
+      dataSourceStructList?.forEach(print);
+    } finally {
+      dataSourceStructList?.forEach((e) => e.dispose());
     }
 
     if (!disconnectDSM(myInfoStruct.pointer, consolePtr)) {
@@ -98,4 +106,39 @@ bool getEntryPoint(
     return false;
   }
   return true;
+}
+
+List<TWIdentity>? iterateDataSource(Pointer<TW_IDENTITY> myInfoPtr) {
+  var dataSource = TWIdentity();
+  var getFirst = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+        DAT_IDENTITY, MSG_GETFIRST, dataSource.pointer.cast());
+  if (getFirst == TWRC_ENDOFLIST) {
+    dataSource.dispose();
+    return [];
+  } else if (getFirst != TWRC_SUCCESS) {
+    var twcc = twainDsm.getConditionCodeString(dataSource.pointer);
+    print('DG_CONTROL / DAT_IDENTITY / MSG_GETNEXT Failed: $twcc');
+    dataSource.dispose();
+    return null;
+  }
+  var res = [dataSource];
+
+  int getNext;
+  do {
+    dataSource = TWIdentity();
+    getNext = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+        DAT_IDENTITY, MSG_GETNEXT, dataSource.pointer.cast());
+    if (getNext == TWRC_SUCCESS) {
+      res.add(dataSource);
+    } else if (getNext == TWRC_ENDOFLIST) {
+      dataSource.dispose();
+      return res;
+    } else if (getNext == TWRC_FAILURE) {
+      var twcc = twainDsm.getConditionCodeString(dataSource.pointer);
+      print('DG_CONTROL / DAT_IDENTITY / MSG_GETNEXT Failed: $twcc');
+      dataSource.dispose();
+    }
+  } while (getNext == TWRC_SUCCESS);
+
+  return res;
 }
