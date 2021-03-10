@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 import 'package:twaindsm/structs.dart';
 import 'package:twaindsm/twaindsm.dart';
+import 'package:win32/win32.dart';
 
 final bool kIsX64 = sizeOf<Pointer>() == 8;
 
@@ -13,29 +14,33 @@ final twainDsm = TwainDsm(DynamicLibrary.open(kIsX64
 
 void main(List<String> arguments) {
   var myInfoStruct = TWIdentity();
-  var parentPtr = calloc<Int32>();
+  var consolePtr = calloc<Int32>();
+  var entryPointPtr = calloc<TW_ENTRYPOINT>();
 
   fillMyInfo(myInfoStruct);
+  consolePtr.value = GetConsoleWindow();
 
   try {
-    var connect = twainDsm.DSM_Entry(myInfoStruct.pointer, nullptr, DG_CONTROL,
-        DAT_PARENT, MSG_OPENDSM, parentPtr.cast<Void>());
-    if (connect != TWRC_SUCCESS) {
-      print('DG_CONTROL / DAT_PARENT / MSG_OPENDSM Failed: $connect\n');
+    if (!connectDSM(myInfoStruct.pointer, consolePtr)) {
       return;
     }
-    print('connect success');
+    print('connectDSM success');
 
-    var disconnect = twainDsm.DSM_Entry(myInfoStruct.pointer, nullptr, DG_CONTROL,
-        DAT_PARENT, MSG_CLOSEDSM, parentPtr.cast<Void>());
-    if (disconnect != TWRC_SUCCESS) {
-      print('DG_CONTROL / DAT_PARENT / MSG_CLOSEDSM Failed: $disconnect\n');
+    if (myInfoStruct.SupportedGroups & DF_DSM2 == DF_DSM2) {
+      if (!getEntryPoint(myInfoStruct.pointer, entryPointPtr)) {
+        return;
+      }
+      print('getEntryPoint success');
+    }
+
+    if (!disconnectDSM(myInfoStruct.pointer, consolePtr)) {
       return;
     }
-    print('disconnect success');
+    print('disconnectDSM success');
   } finally {
     myInfoStruct.dispose();
-    calloc.free(parentPtr);
+    calloc.free(consolePtr);
+    calloc.free(entryPointPtr);
   }
 }
 
@@ -53,4 +58,44 @@ void fillMyInfo(TWIdentity myInfo) {
   myInfo.Manufacturer = 'App\'s Manufacturer';
   myInfo.ProductFamily = 'App\'s Product Family';
   myInfo.ProductName = 'Specific App Product Name';
+}
+
+bool connectDSM(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<Int32> parentPtr,
+) {
+  var connect = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL, DAT_PARENT,
+      MSG_OPENDSM, parentPtr.cast());
+  if (connect != TWRC_SUCCESS) {
+    print('DG_CONTROL / DAT_PARENT / MSG_OPENDSM Failed: $connect');
+    return false;
+  }
+  return true;
+}
+
+bool disconnectDSM(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<Int32> parentPtr,
+) {
+  var disconnect = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+      DAT_PARENT, MSG_CLOSEDSM, parentPtr.cast());
+  if (disconnect != TWRC_SUCCESS) {
+    print('DG_CONTROL / DAT_PARENT / MSG_CLOSEDSM Failed: $disconnect');
+    return false;
+  }
+  return true;
+}
+
+bool getEntryPoint(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_ENTRYPOINT> entryPointPtr,
+) {
+  entryPointPtr.ref.Size = sizeOf<TW_ENTRYPOINT>();
+  var entryPoint = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+      DAT_ENTRYPOINT, MSG_GET, entryPointPtr.cast());
+  if (entryPoint != TWRC_SUCCESS) {
+    print('DG_CONTROL / DAT_ENTRYPOINT / MSG_GET Failed: $entryPoint');
+    return false;
+  }
+  return true;
 }
