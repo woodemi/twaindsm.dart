@@ -211,7 +211,7 @@ void opDS(
       var xferMechCurrent = getCurrent(xferMechPtr, entryPointPtr);
       switch (xferMechCurrent) {
         case TWSX_NATIVE:
-          print('xferMechCurrent TWSX_NATIVE');
+          initiateTransfer_Native(myInfoPtr, dataSourcePtr, entryPointPtr);
           break;
       }
       entryPointPtr.ref.memFree(xferMechPtr.ref.hContainer);
@@ -358,5 +358,122 @@ int? getCurrent(
     return null;
   } finally {
     entryPointPtr.ref.memUnlock(capabilityPtr.ref.hContainer);    
+  }
+}
+
+void initiateTransfer_Native(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+  Pointer<TW_ENTRYPOINT> entryPointPtr,
+) {
+  print('initiateTransfer_Native');
+
+  var imageInfoPtr = calloc<TW_IMAGEINFO>();
+  var containerRefPtr = calloc<Pointer<Void>>();
+
+  var pendingXfers = true;
+  var xferNum = 0;
+  while (pendingXfers) {
+    xferNum++;
+    if (!updateImageInfo(myInfoPtr, dataSourcePtr, imageInfoPtr)) {
+      break;
+    }
+    print('imageInfo ${imageInfoPtr.ref.toMap()}');
+
+    var getNativeXfer = twainDsm.DSM_Entry(myInfoPtr, dataSourcePtr, DG_IMAGE, DAT_IMAGENATIVEXFER, MSG_GET, containerRefPtr.cast());
+    if (getNativeXfer == TWRC_CANCEL) {
+      var twcc = twainDsm.getConditionCodeString(dataSourcePtr);
+      print('Canceled transfer image $twcc');
+      break;
+    } else if (getNativeXfer == TWRC_FAILURE) {
+      var twcc = twainDsm.getConditionCodeString(dataSourcePtr);
+      print('Failed to transfer image $twcc');
+      break;
+    } else if (getNativeXfer != TWRC_XFERDONE) {
+      continue;
+    }
+    
+    var containerPtr = containerRefPtr.value;
+    var infoHeaderPtr = entryPointPtr.ref.memLock(containerPtr).cast<BITMAPINFOHEADER>();
+    try {
+      if (infoHeaderPtr == nullptr || infoHeaderPtr.ref.paletteSize == null) {
+        break;
+      }
+      saveToFile(infoHeaderPtr, 'FROM_SCANNER_${xferNum.toString().padLeft(6, '0')}.bmp');
+    } finally {
+      entryPointPtr.ref.memUnlock(containerPtr);
+      entryPointPtr.ref.memFree(containerPtr);
+    }
+
+    // TODO updateEXTIMAGEINFO();
+
+    var pendingXfersPtr = calloc<TW_PENDINGXFERS>();
+    var getPendingXfers = twainDsm.DSM_Entry(myInfoPtr, dataSourcePtr, DG_CONTROL, DAT_PENDINGXFERS, MSG_ENDXFER, pendingXfersPtr.cast());
+    if (getPendingXfers == TWRC_SUCCESS) {
+      print('app: Remaining images to transfer: ${pendingXfersPtr.ref.Count}');
+      pendingXfers = pendingXfersPtr.ref.Count > 0;
+    } else {
+      var twcc = twainDsm.getConditionCodeString(dataSourcePtr);
+      print('Failed to properly end the transfer $twcc');
+      pendingXfers = false;
+    }
+  }
+
+  if (pendingXfers) {
+    // TODO DoAbortXfer();
+  }
+
+  calloc.free(imageInfoPtr);
+  calloc.free(containerRefPtr);
+
+  print('app: DONE!');
+}
+
+bool updateImageInfo(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+  Pointer<TW_IMAGEINFO> imageInfoPtr,
+) {
+  var twrc = twainDsm.DSM_Entry(myInfoPtr, dataSourcePtr, DG_IMAGE, DAT_IMAGEINFO, MSG_GET, imageInfoPtr.cast());
+  if (twrc != TWRC_SUCCESS) {
+    var twcc = twainDsm.getConditionCodeString(dataSourcePtr);
+    print('Error while trying to get the image information! $twcc');
+    return false;
+  }
+  return true;
+}
+
+void saveToFile(Pointer<BITMAPINFOHEADER> infoHeaderPtr, String path) {
+  var imageOffset = sizeOf<BITMAPINFOHEADER>() + sizeOf<RGBQUAD>() * infoHeaderPtr.ref.paletteSize!;
+  print('imageOffset $imageOffset');
+
+  if (infoHeaderPtr.ref.biSizeImage == 0) {
+    throw 'TODO biSizeImage';
+  }
+  var contentSize = imageOffset + infoHeaderPtr.ref.biSizeImage;
+  print('contentSize $contentSize');
+
+  var fileHeaderPtr = calloc<BITMAPFILEHEADER>();
+  fileHeaderPtr.ref.bfType = 0x4d42; // 'MB'
+  fileHeaderPtr.ref.bfSize = sizeOf<BITMAPFILEHEADER>() + contentSize;
+  fileHeaderPtr.ref.bfOffBits = sizeOf<BITMAPFILEHEADER>() + imageOffset;
+
+  var file = File(path);
+  file.writeAsBytesSync(fileHeaderPtr.cast<Uint8>().asTypedList(sizeOf<BITMAPFILEHEADER>()));
+  file.writeAsBytesSync(infoHeaderPtr.cast<Uint8>().asTypedList(contentSize), mode: FileMode.append);
+}
+
+extension BitmapInfoHeader on BITMAPINFOHEADER {
+  int? get paletteSize {
+    switch (biBitCount) {
+      case 1:
+        return 2;
+      case 8:
+        return 256;
+      case 24:
+        return 0;
+      default:
+        return null;
+    }
   }
 }
