@@ -1,6 +1,7 @@
 import 'dart:ffi';
 
 import 'package:ffi/ffi.dart';
+import 'package:win32/win32.dart';
 
 import 'twaindsm.dart';
 
@@ -65,4 +66,19 @@ extension TWEntrypoint on TW_ENTRYPOINT {
 
 extension TWEnumerationPointer on Pointer<TW_ENUMERATION> {
   int get itemListAddress => address + 14;
+}
+
+extension BitmapInfoHeader on BITMAPINFOHEADER {
+  int? get paletteSize {
+    switch (biBitCount) {
+      case 1:
+        return 2;
+      case 8:
+        return 256;
+      case 24:
+        return 0;
+      default:
+        return null;
+    }
+  }
 }

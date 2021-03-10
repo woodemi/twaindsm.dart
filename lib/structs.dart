@@ -195,6 +195,67 @@ class TWEnumeration extends _TWStruct<TW_ENUMERATION> {
   int get itemListAddress => _pointer.address + 14;
 }
 
+// typedef struct {
+//    TW_FIX32   XResolution;
+//    TW_FIX32   YResolution;
+//    TW_INT32   ImageWidth;
+//    TW_INT32   ImageLength;
+//    TW_INT16   SamplesPerPixel;
+//    TW_INT16   BitsPerSample[8];
+//    TW_INT16   BitsPerPixel;
+//    TW_BOOL    Planar;
+//    TW_INT16   PixelType;
+//    TW_UINT16  Compression;
+// } TW_IMAGEINFO, FAR * pTW_IMAGEINFO;
+class TWImageInfo extends _TWStruct<TW_IMAGEINFO> {
+  // TODO https://github.com/dart-lang/sdk/issues/38158
+  // sizeOf<TW_IMAGEINFO> = 44 != 4 + 4 + 4 + 4 + 2 + 2 * 8 + 2 + 2 + 2 + 2
+  @override
+  int get size => 4 + 4 + 4 + 4 + 2 + 2 * 8 + 2 + 2 + 2 + 2;
+
+  Pointer<TW_FIX32> get XResolution => Pointer.fromAddress(pointer.address);
+
+  Pointer<TW_FIX32> get YResolution => Pointer.fromAddress(pointer.address + 4);
+
+  int get ImageWidth => _getInt32(4 + 4);
+
+  int get ImageLength => _getInt32(4 + 4 + 4);
+
+  int get SamplesPerPixel => _getInt16(4 + 4 + 4 + 4);
+
+  // TODO List<int> get BitsPerSample => null;
+
+  int get BitsPerPixel => _getInt16(4 + 4 + 4 + 4 + 2 + 2 * 8);
+
+  int get Planar => _getUint16(4 + 4 + 4 + 4 + 2 + 2 * 8 + 2);
+
+  int get PixelType => _getUint16(4 + 4 + 4 + 4 + 2 + 2 * 8 + 2 + 2);
+
+  int get Compression => _getUint16(4 + 4 + 4 + 4 + 2 + 2 * 8 + 2 + 2 + 2);
+
+  @override
+  String toString() {
+    return {
+      'XResolution': {
+        'Whole': XResolution.ref.Whole,
+        'Frac': XResolution.ref.Frac,
+      },
+      'YResolution': {
+        'Whole': YResolution.ref.Whole,
+        'Frac': YResolution.ref.Frac,
+      },
+      'ImageWidth': ImageWidth,
+      'ImageLength': ImageLength,
+      'SamplesPerPixel': SamplesPerPixel,
+      // TODO BitsPerSample
+      'BitsPerPixel': BitsPerPixel,
+      'Planar': Planar,
+      'PixelType': PixelType,
+      'Compression': Compression,
+    }.toString();
+  }
+}
+
 extension TWVersion on TW_VERSION {
   Map<String, dynamic> toMap() => {
     'MajorNum': MajorNum,

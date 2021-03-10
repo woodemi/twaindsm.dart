@@ -149,7 +149,7 @@ packages:
     source: hosted
     version: "1.3.0"
   win32:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: win32
       url: "https://pub.flutter-io.cn"
