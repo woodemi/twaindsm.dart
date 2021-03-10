@@ -15,14 +15,13 @@ final twainDsm = TwainDsm(DynamicLibrary.open(kIsX64
 
 void main(List<String> arguments) {
   var myInfoPtr = calloc<TW_IDENTITY>();
-  var consolePtr = calloc<Int32>();
+  var consolePtr = Pointer.fromAddress(GetConsoleWindow());
   var entryPointPtr = calloc<TW_ENTRYPOINT>();
 
   fillMyInfo(myInfoPtr.ref);
-  consolePtr.value = GetConsoleWindow();
 
   try {
-    if (!connectDSM(myInfoPtr, consolePtr)) {
+    if (!connectDSM(myInfoPtr, consolePtr.cast())) {
       return;
     }
     print('connectDSM success');
@@ -36,13 +35,12 @@ void main(List<String> arguments) {
 
     operateDataSource(myInfoPtr);
 
-    if (!disconnectDSM(myInfoPtr, consolePtr)) {
+    if (!disconnectDSM(myInfoPtr, consolePtr.cast())) {
       return;
     }
     print('disconnectDSM success');
   } finally {
     calloc.free(myInfoPtr);
-    calloc.free(consolePtr);
     calloc.free(entryPointPtr);
   }
 }
@@ -65,10 +63,10 @@ void fillMyInfo(TW_IDENTITY myInfo) {
 
 bool connectDSM(
   Pointer<TW_IDENTITY> myInfoPtr,
-  Pointer<Int32> parentPtr,
+  Pointer<Void> parentPtr,
 ) {
   var connect = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL, DAT_PARENT,
-      MSG_OPENDSM, parentPtr.cast());
+      MSG_OPENDSM, parentPtr);
   if (connect != TWRC_SUCCESS) {
     print('DG_CONTROL / DAT_PARENT / MSG_OPENDSM Failed: $connect');
     return false;
@@ -78,10 +76,10 @@ bool connectDSM(
 
 bool disconnectDSM(
   Pointer<TW_IDENTITY> myInfoPtr,
-  Pointer<Int32> parentPtr,
+  Pointer<Void> parentPtr,
 ) {
   var disconnect = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
-      DAT_PARENT, MSG_CLOSEDSM, parentPtr.cast());
+      DAT_PARENT, MSG_CLOSEDSM, parentPtr);
   if (disconnect != TWRC_SUCCESS) {
     print('DG_CONTROL / DAT_PARENT / MSG_CLOSEDSM Failed: $disconnect');
     return false;
@@ -152,6 +150,8 @@ void operateDataSource(Pointer<TW_IDENTITY> myInfoPtr) {
     }
     print('loadDS success');
 
+    opDS(myInfoPtr, dataSource);
+
     if (!unloadDS(myInfoPtr, dataSource)) {
       return;
     }
@@ -187,4 +187,59 @@ bool unloadDS(
     return false;
   }
   return true;
+}
+
+void opDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+) {
+  if (!enableDS(myInfoPtr, dataSourcePtr, GetDesktopWindow())) {
+    return;
+  }
+  print('enableDS success');
+
+  if (!disableDS(myInfoPtr, dataSourcePtr)) {
+    return;
+  }
+  print('disableDS success');
+}
+
+bool enableDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+  int hwnd,
+) {
+  var userInterfacePtr = calloc<TW_USERINTERFACE>();
+  try {
+    userInterfacePtr.ref.ShowUI = FALSE;
+    userInterfacePtr.ref.ModalUI = TRUE;
+    userInterfacePtr.ref.hParent = Pointer.fromAddress(hwnd);
+    var twrc = twainDsm.DSM_Entry(myInfoPtr, dataSourcePtr, DG_CONTROL, DAT_USERINTERFACE, MSG_ENABLEDS, userInterfacePtr.cast());
+    if (twrc != TWRC_SUCCESS && twrc != TWRC_CHECKSTATUS) {
+      var twcc = twainDsm.getConditionCodeString(dataSourcePtr);
+      print('Cannot enable source $twcc');
+      return false;
+    }
+    return true;
+  } finally {
+    calloc.free(userInterfacePtr);
+  }
+}
+
+bool disableDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+) {
+  var userInterfacePtr = calloc<TW_USERINTERFACE>();
+  try {
+    var twrc = twainDsm.DSM_Entry(myInfoPtr, dataSourcePtr, DG_CONTROL, DAT_USERINTERFACE, MSG_DISABLEDS, userInterfacePtr.cast());
+    if (twrc != TWRC_SUCCESS) {
+      var twcc = twainDsm.getConditionCodeString(dataSourcePtr);
+      print('Cannot disable source $twcc');
+      return false;
+    }
+    return true;
+  } finally {
+    calloc.free(userInterfacePtr);
+  }
 }
