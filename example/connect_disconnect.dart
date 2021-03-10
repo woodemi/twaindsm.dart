@@ -34,12 +34,7 @@ void main(List<String> arguments) {
       print('getEntryPoint success');
     }
 
-    var dataSourceStructList = iterateDataSource(myInfoStruct.pointer);
-    try {
-      dataSourceStructList?.forEach(print);
-    } finally {
-      dataSourceStructList?.forEach((e) => e.dispose());
-    }
+    operateDataSource(myInfoStruct.pointer);
 
     if (!disconnectDSM(myInfoStruct.pointer, consolePtr)) {
       return;
@@ -141,4 +136,52 @@ List<TWIdentity>? iterateDataSource(Pointer<TW_IDENTITY> myInfoPtr) {
   } while (getNext == TWRC_SUCCESS);
 
   return res;
+}
+
+void operateDataSource(Pointer<TW_IDENTITY> myInfoPtr) {
+  var dataSourceStructList = iterateDataSource(myInfoPtr);
+  if (dataSourceStructList == null) return;
+
+  try {
+    var dataSourceStruct = dataSourceStructList[0];
+    if (!loadDS(myInfoPtr, dataSourceStruct.pointer)) {
+      return;
+    }
+    print('loadDS success');
+
+    if (!unloadDS(myInfoPtr, dataSourceStruct.pointer)) {
+      return;
+    }
+    print('unloadDS success');
+  } finally {
+    dataSourceStructList.forEach((e) => e.dispose());
+  }
+}
+
+bool loadDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+) {
+  var openDS = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+      DAT_IDENTITY, MSG_OPENDS, dataSourcePtr.cast());
+  if (openDS != TWRC_SUCCESS) {
+    var twcc = twainDsm.getConditionCodeString(dataSourcePtr);
+    print('DG_CONTROL / DAT_IDENTITY / MSG_OPENDS Failed: $twcc');
+    return false;
+  }
+  return true;
+}
+
+bool unloadDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+) {
+  var closeDS = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+      DAT_IDENTITY, MSG_CLOSEDS, dataSourcePtr.cast());
+  if (closeDS != TWRC_SUCCESS) {
+    var twcc = twainDsm.getConditionCodeString(dataSourcePtr);
+    print('DG_CONTROL / DAT_ENTRYPOINT / MSG_CLOSEDS Failed: $twcc');
+    return false;
+  }
+  return true;
 }
