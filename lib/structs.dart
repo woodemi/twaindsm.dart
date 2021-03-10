@@ -14,6 +14,8 @@ abstract class _TWStruct<T extends NativeType> {
     _pointer = calloc<Uint8>(size);
   }
 
+  _TWStruct._fromAddress(int ptr) : _pointer = Pointer.fromAddress(ptr);
+
   void dispose() {
     calloc.free(_pointer);
   }
@@ -157,6 +159,40 @@ class TWIdentity extends _TWStruct<TW_IDENTITY> {
   String toString() {
     return toMap().toString();
   }
+}
+
+// typedef struct TW_ENUMERATION {
+//    TW_UINT16  ItemType;
+//    TW_UINT32  NumItems;
+//    TW_UINT32  CurrentIndex;
+//    TW_UINT32  DefaultIndex;
+//    TW_UINT8   ItemList[1];
+// };
+class TWEnumeration extends _TWStruct<TW_ENUMERATION> {
+  TWEnumeration.fromAddress(int address): super._fromAddress(address);
+
+  // TODO https://github.com/dart-lang/sdk/issues/38158
+  // sizeOf<TW_ENUMERATION> = 20 != 2 + 4 + 4 + 4 + 1
+  @override
+  int get size => 2 + 4 + 4 + 4 + 1;
+
+  int get ItemType => _getUint16(0);
+
+  set ItemType(int i) => _setUint16(0, i);
+
+  int get NumItems => _getUint32(2);
+
+  set NumItems(int i) => _setUint32(2, i);
+
+  int get CurrentIndex => _getUint32(6);
+
+  set CurrentIndex(int i) => _setUint32(6, i);
+
+  int get DefaultIndex => _getUint32(10);
+
+  set DefaultIndex(int i) => _setUint32(10, i);
+
+  int get itemListAddress => _pointer.address + 14;
 }
 
 extension TWVersion on TW_VERSION {

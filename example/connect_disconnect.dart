@@ -37,7 +37,7 @@ void main(List<String> arguments) {
       print('getEntryPoint success');
     }
 
-    operateDataSource(myInfoStruct.pointer);
+    operateDataSource(myInfoStruct.pointer, entryPointPtr);
 
     if (!disconnectDSM(myInfoStruct.pointer, consolePtr)) {
       return;
@@ -141,7 +141,10 @@ List<TWIdentity>? iterateDataSource(Pointer<TW_IDENTITY> myInfoPtr) {
   return res;
 }
 
-void operateDataSource(Pointer<TW_IDENTITY> myInfoPtr) {
+void operateDataSource(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_ENTRYPOINT> entryPointPtr,
+) {
   var dataSourceStructList = iterateDataSource(myInfoPtr);
   if (dataSourceStructList == null) return;
 
@@ -152,7 +155,7 @@ void operateDataSource(Pointer<TW_IDENTITY> myInfoPtr) {
     }
     print('loadDS success');
 
-    opDS(myInfoPtr, dataSourceStruct.pointer);
+    opDS(myInfoPtr, dataSourceStruct.pointer, entryPointPtr);
 
     if (!unloadDS(myInfoPtr, dataSourceStruct.pointer)) {
       return;
@@ -194,6 +197,7 @@ bool unloadDS(
 void opDS(
   Pointer<TW_IDENTITY> myInfoPtr,
   Pointer<TW_IDENTITY> dataSourcePtr,
+  Pointer<TW_ENTRYPOINT> entryPointPtr,
 ) {
   if (!enableDS(myInfoPtr, dataSourcePtr, user32.GetDesktopWindow())) {
     return;
@@ -203,7 +207,18 @@ void opDS(
   var dsMessage = pollTWMessage(myInfoPtr, dataSourcePtr);
 
   if (dsMessage == MSG_XFERREADY) {
-    print('dsMessage $dsMessage');
+    var xferMechPtr = calloc<TW_CAPABILITY>();
+    if (getCapability(myInfoPtr, dataSourcePtr, ICAP_XFERMECH, xferMechPtr)) {
+      // startScan(dataSourcePtr, xferMechPtr);
+      var xferMechCurrent = getCurrent(xferMechPtr, entryPointPtr);
+      switch (xferMechCurrent) {
+        case TWSX_NATIVE:
+          print('xferMechCurrent TWSX_NATIVE');
+          break;
+      }
+      entryPointPtr.ref.memFree(xferMechPtr.ref.hContainer);
+    }
+    calloc.free(xferMechPtr);
   }
 
   if (!disableDS(myInfoPtr, dataSourcePtr)) {
@@ -288,4 +303,61 @@ int pollTWMessage(
   calloc.free(eventPtr);
   calloc.free(msgPtr);
   return dsMessage;
+}
+
+bool getCapability(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+  int cap,
+  Pointer<TW_CAPABILITY> capabilityPtr,
+) {
+  capabilityPtr.ref.Cap = cap;
+  capabilityPtr.ref.ConType = TWON_DONTCARE16;
+  var twrc = twainDsm.DSM_Entry(myInfoPtr, dataSourcePtr, DG_CONTROL, DAT_CAPABILITY, MSG_GET, capabilityPtr.cast());
+  if (twrc != TWRC_SUCCESS) {
+    var twcc = twainDsm.getConditionCodeString(dataSourcePtr);
+    print('Failed to get the capability: [$cap], $twcc');
+    return false;
+  }
+  return true;
+}
+
+int? getCurrent(
+  Pointer<TW_CAPABILITY> capabilityPtr,
+  Pointer<TW_ENTRYPOINT> entryPointPtr,
+) {
+  if (capabilityPtr.ref.hContainer == nullptr) {
+    return null;
+  }
+
+  var containerPtr = entryPointPtr.ref.memLock(capabilityPtr.ref.hContainer);
+  try {
+    if (capabilityPtr.ref.ConType == TWON_ENUMERATION) {
+      var enumeration = TWEnumeration.fromAddress(containerPtr.address);
+      var itemListPtr = Pointer.fromAddress(enumeration.itemListAddress);
+      switch (enumeration.ItemType) {
+        case TWTY_INT8:
+          return itemListPtr.cast<Int8>()[enumeration.CurrentIndex];
+        case TWTY_INT16:
+          return itemListPtr.cast<Int16>()[enumeration.CurrentIndex];
+        case TWTY_INT32:
+          return itemListPtr.cast<Int32>()[enumeration.CurrentIndex];
+        case TWTY_UINT8:
+          return itemListPtr.cast<Uint8>()[enumeration.CurrentIndex];
+        case TWTY_UINT16:
+          return itemListPtr.cast<Uint16>()[enumeration.CurrentIndex];
+        case TWTY_UINT32:
+          return itemListPtr.cast<Uint32>()[enumeration.CurrentIndex];
+        case TWTY_BOOL:
+          return itemListPtr.cast<Uint16>()[enumeration.CurrentIndex];
+      }
+    } else if (capabilityPtr.ref.ConType == TWON_ONEVALUE) {
+      // TODO
+    } else if (capabilityPtr.ref.ConType == TWON_RANGE) {
+      // TODO
+    }
+    return null;
+  } finally {
+    entryPointPtr.ref.memUnlock(capabilityPtr.ref.hContainer);    
+  }
 }
