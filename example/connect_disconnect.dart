@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 import 'package:twaindsm/structs.dart';
 import 'package:twaindsm/twaindsm.dart';
+import 'package:twaindsm/utils.dart';
 import 'package:win32/win32.dart';
 
 final bool kIsX64 = sizeOf<Pointer>() == 8;
@@ -31,6 +32,18 @@ void main(List<String> arguments) {
         return;
       }
       print('getEntryPoint success');
+    }
+
+    var dataSourceList = iterateDataSource(myInfoPtr);
+    try {
+      dataSourceList?.forEach((e) {
+        print('TW_IDENTITY ${e.ref.toMap()}');
+        print('Manufacturer ${e.ref.getManufacturer()}');
+        print('ProductFamily ${e.ref.getProductFamily()}');
+        print('ProductName ${e.ref.getProductName()}');
+      });
+    } finally {
+      dataSourceList?.forEach((e) => calloc.free(e));
     }
 
     if (!disconnectDSM(myInfoPtr, consolePtr)) {
@@ -98,4 +111,39 @@ bool getEntryPoint(
     return false;
   }
   return true;
+}
+
+List<Pointer<TW_IDENTITY>>? iterateDataSource(Pointer<TW_IDENTITY> myInfoPtr) {
+  var dataSource = calloc<TW_IDENTITY>();
+  var getFirst = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+        DAT_IDENTITY, MSG_GETFIRST, dataSource.cast());
+  if (getFirst == TWRC_ENDOFLIST) {
+    calloc.free(dataSource);
+    return [];
+  } else if (getFirst != TWRC_SUCCESS) {
+    var twcc = twainDsm.getConditionCodeString(dataSource);
+    print('DG_CONTROL / DAT_IDENTITY / MSG_GETNEXT Failed: $twcc');
+    calloc.free(dataSource);
+    return null;
+  }
+  var res = [dataSource];
+
+  int getNext;
+  do {
+    dataSource = calloc<TW_IDENTITY>();
+    getNext = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+        DAT_IDENTITY, MSG_GETNEXT, dataSource.cast());
+    if (getNext == TWRC_SUCCESS) {
+      res.add(dataSource);
+    } else if (getNext == TWRC_ENDOFLIST) {
+      calloc.free(dataSource);
+      return res;
+    } else if (getNext == TWRC_FAILURE) {
+      var twcc = twainDsm.getConditionCodeString(dataSource);
+      print('DG_CONTROL / DAT_IDENTITY / MSG_GETNEXT Failed: $twcc');
+      calloc.free(dataSource);
+    }
+  } while (getNext == TWRC_SUCCESS);
+
+  return res;
 }
