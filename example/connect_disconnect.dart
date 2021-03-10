@@ -34,17 +34,7 @@ void main(List<String> arguments) {
       print('getEntryPoint success');
     }
 
-    var dataSourceList = iterateDataSource(myInfoPtr);
-    try {
-      dataSourceList?.forEach((e) {
-        print('TW_IDENTITY ${e.ref.toMap()}');
-        print('Manufacturer ${e.ref.getManufacturer()}');
-        print('ProductFamily ${e.ref.getProductFamily()}');
-        print('ProductName ${e.ref.getProductName()}');
-      });
-    } finally {
-      dataSourceList?.forEach((e) => calloc.free(e));
-    }
+    operateDataSource(myInfoPtr);
 
     if (!disconnectDSM(myInfoPtr, consolePtr)) {
       return;
@@ -146,4 +136,55 @@ List<Pointer<TW_IDENTITY>>? iterateDataSource(Pointer<TW_IDENTITY> myInfoPtr) {
   } while (getNext == TWRC_SUCCESS);
 
   return res;
+}
+
+void operateDataSource(Pointer<TW_IDENTITY> myInfoPtr) {
+  var dataSourceList = iterateDataSource(myInfoPtr);
+  if (dataSourceList == null || dataSourceList.isEmpty) {
+    print('dataSourceList is null or emtpy');
+    return;
+  }
+
+  try {
+    var dataSource = dataSourceList[0];
+    if (!loadDS(myInfoPtr, dataSource)) {
+      return;
+    }
+    print('loadDS success');
+
+    if (!unloadDS(myInfoPtr, dataSource)) {
+      return;
+    }
+    print('unloadDS success');
+  } finally {
+    dataSourceList.forEach((e) => calloc.free(e));
+  }
+}
+
+bool loadDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+) {
+  var openDS = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+      DAT_IDENTITY, MSG_OPENDS, dataSourcePtr.cast());
+  if (openDS != TWRC_SUCCESS) {
+    var twcc = twainDsm.getConditionCodeString(dataSourcePtr);
+    print('DG_CONTROL / DAT_IDENTITY / MSG_OPENDS Failed: $twcc');
+    return false;
+  }
+  return true;
+}
+
+bool unloadDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+) {
+  var closeDS = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+      DAT_IDENTITY, MSG_CLOSEDS, dataSourcePtr.cast());
+  if (closeDS != TWRC_SUCCESS) {
+    var twcc = twainDsm.getConditionCodeString(dataSourcePtr);
+    print('DG_CONTROL / DAT_ENTRYPOINT / MSG_CLOSEDS Failed: $twcc');
+    return false;
+  }
+  return true;
 }
