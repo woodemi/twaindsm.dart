@@ -255,7 +255,22 @@ class TW_FILESYSTEM extends ffi.Opaque {}
 
 class TW_GRAYRESPONSE extends ffi.Opaque {}
 
-class TW_VERSION extends ffi.Opaque {}
+class TW_VERSION extends ffi.Struct {
+  @ffi.Uint16()
+  external int MajorNum;
+
+  @ffi.Uint16()
+  external int MinorNum;
+
+  @ffi.Uint16()
+  external int Language;
+
+  @ffi.Uint16()
+  external int Country;
+  
+  @ffi.Array(34)
+  external ffi.Array<ffi.Int8> Info;
+}
 
 class TW_IDENTITY extends ffi.Opaque {}
 
