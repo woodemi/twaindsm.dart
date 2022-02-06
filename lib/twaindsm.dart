@@ -139,6 +139,7 @@ class TwainDsm {
 }
 
 /// Structure Definitions                                                    *
+@ffi.Packed(2)
 class TW_FIX32 extends ffi.Struct {
   @ffi.Int16()
   external int Whole;
@@ -147,6 +148,7 @@ class TW_FIX32 extends ffi.Struct {
   external int Frac;
 }
 
+@ffi.Packed(2)
 class TW_FRAME extends ffi.Struct {
   external TW_FIX32 Left;
 
@@ -157,6 +159,7 @@ class TW_FRAME extends ffi.Struct {
   external TW_FIX32 Bottom;
 }
 
+@ffi.Packed(2)
 class TW_DECODEFUNCTION extends ffi.Struct {
   external TW_FIX32 StartIn;
 
@@ -175,12 +178,37 @@ class TW_DECODEFUNCTION extends ffi.Struct {
   external TW_FIX32 SampleCount;
 }
 
-class TW_TRANSFORMSTAGE extends ffi.Opaque {}
+@ffi.Packed(2)
+class TW_TRANSFORMSTAGE extends ffi.Struct {
+  @ffi.Array.multi([3])
+  external ffi.Array<TW_DECODEFUNCTION> Decode;
 
-class TW_ARRAY extends ffi.Opaque {}
+  @ffi.Array.multi([3, 3])
+  external ffi.Array<ffi.Array<TW_FIX32>> Mix;
+}
 
-class TW_AUDIOINFO extends ffi.Opaque {}
+@ffi.Packed(2)
+class TW_ARRAY extends ffi.Struct {
+  @ffi.Uint16()
+  external int ItemType;
 
+  @ffi.Uint32()
+  external int NumItems;
+
+  @ffi.Array.multi([1])
+  external ffi.Array<ffi.Uint8> ItemList;
+}
+
+@ffi.Packed(2)
+class TW_AUDIOINFO extends ffi.Struct {
+  @ffi.Array.multi([256])
+  external ffi.Array<ffi.Int8> Name;
+
+  @ffi.Uint32()
+  external int Reserved;
+}
+
+@ffi.Packed(2)
 class TW_CALLBACK extends ffi.Struct {
   external ffi.Pointer<ffi.Void> CallBackProc;
 
@@ -191,6 +219,7 @@ class TW_CALLBACK extends ffi.Struct {
   external int Message;
 }
 
+@ffi.Packed(2)
 class TW_CALLBACK2 extends ffi.Struct {
   external ffi.Pointer<ffi.Void> CallBackProc;
 
@@ -201,6 +230,7 @@ class TW_CALLBACK2 extends ffi.Struct {
   external int Message;
 }
 
+@ffi.Packed(2)
 class TW_CAPABILITY extends ffi.Struct {
   @ffi.Uint16()
   external int Cap;
@@ -211,6 +241,7 @@ class TW_CAPABILITY extends ffi.Struct {
   external ffi.Pointer<ffi.Void> hContainer;
 }
 
+@ffi.Packed(2)
 class TW_CIEPOINT extends ffi.Struct {
   external TW_FIX32 X;
 
@@ -219,8 +250,37 @@ class TW_CIEPOINT extends ffi.Struct {
   external TW_FIX32 Z;
 }
 
-class TW_CIECOLOR extends ffi.Opaque {}
+@ffi.Packed(2)
+class TW_CIECOLOR extends ffi.Struct {
+  @ffi.Uint16()
+  external int ColorSpace;
 
+  @ffi.Int16()
+  external int LowEndian;
+
+  @ffi.Int16()
+  external int DeviceDependent;
+
+  @ffi.Int32()
+  external int VersionNumber;
+
+  external TW_TRANSFORMSTAGE StageABC;
+
+  external TW_TRANSFORMSTAGE StageLMN;
+
+  external TW_CIEPOINT WhitePoint;
+
+  external TW_CIEPOINT BlackPoint;
+
+  external TW_CIEPOINT WhitePaper;
+
+  external TW_CIEPOINT BlackInk;
+
+  @ffi.Array.multi([1])
+  external ffi.Array<TW_FIX32> Samples;
+}
+
+@ffi.Packed(2)
 class TW_CUSTOMDSDATA extends ffi.Struct {
   @ffi.Uint32()
   external int InfoLength;
@@ -228,8 +288,41 @@ class TW_CUSTOMDSDATA extends ffi.Struct {
   external ffi.Pointer<ffi.Void> hData;
 }
 
-class TW_DEVICEEVENT extends ffi.Opaque {}
+@ffi.Packed(2)
+class TW_DEVICEEVENT extends ffi.Struct {
+  @ffi.Uint32()
+  external int Event;
 
+  @ffi.Array.multi([256])
+  external ffi.Array<ffi.Int8> DeviceName;
+
+  @ffi.Uint32()
+  external int BatteryMinutes;
+
+  @ffi.Int16()
+  external int BatteryPercentage;
+
+  @ffi.Int32()
+  external int PowerSupply;
+
+  external TW_FIX32 XResolution;
+
+  external TW_FIX32 YResolution;
+
+  @ffi.Uint32()
+  external int FlashUsed2;
+
+  @ffi.Uint32()
+  external int AutomaticCapture;
+
+  @ffi.Uint32()
+  external int TimeBeforeFirstCapture;
+
+  @ffi.Uint32()
+  external int TimeBetweenCaptures;
+}
+
+@ffi.Packed(2)
 class TW_ELEMENT8 extends ffi.Struct {
   @ffi.Uint8()
   external int Index;
@@ -244,8 +337,25 @@ class TW_ELEMENT8 extends ffi.Struct {
   external int Channel3;
 }
 
-class TW_ENUMERATION extends ffi.Opaque {}
+@ffi.Packed(2)
+class TW_ENUMERATION extends ffi.Struct {
+  @ffi.Uint16()
+  external int ItemType;
 
+  @ffi.Uint32()
+  external int NumItems;
+
+  @ffi.Uint32()
+  external int CurrentIndex;
+
+  @ffi.Uint32()
+  external int DefaultIndex;
+
+  @ffi.Array.multi([1])
+  external ffi.Array<ffi.Uint8> ItemList;
+}
+
+@ffi.Packed(2)
 class TW_EVENT extends ffi.Struct {
   external ffi.Pointer<ffi.Void> pEvent;
 
@@ -253,6 +363,7 @@ class TW_EVENT extends ffi.Struct {
   external int TWMessage;
 }
 
+@ffi.Packed(2)
 class TW_INFO extends ffi.Struct {
   @ffi.Uint16()
   external int InfoID;
@@ -267,12 +378,60 @@ class TW_INFO extends ffi.Struct {
   external int Item;
 }
 
-class TW_EXTIMAGEINFO extends ffi.Opaque {}
+@ffi.Packed(2)
+class TW_EXTIMAGEINFO extends ffi.Struct {
+  @ffi.Uint32()
+  external int NumInfos;
 
-class TW_FILESYSTEM extends ffi.Opaque {}
+  @ffi.Array.multi([1])
+  external ffi.Array<TW_INFO> Info;
+}
 
-class TW_GRAYRESPONSE extends ffi.Opaque {}
+@ffi.Packed(2)
+class TW_FILESYSTEM extends ffi.Struct {
+  @ffi.Array.multi([256])
+  external ffi.Array<ffi.Int8> InputName;
 
+  @ffi.Array.multi([256])
+  external ffi.Array<ffi.Int8> OutputName;
+
+  external ffi.Pointer<ffi.Void> Context;
+
+  @ffi.Uint32()
+  external int Size;
+
+  @ffi.Array.multi([34])
+  external ffi.Array<ffi.Int8> CreateTimeDate;
+
+  @ffi.Array.multi([34])
+  external ffi.Array<ffi.Int8> ModifiedTimeDate;
+
+  @ffi.Uint32()
+  external int FreeSpace;
+
+  @ffi.Int32()
+  external int NewImageSize;
+
+  @ffi.Uint32()
+  external int NumberOfFiles;
+
+  @ffi.Uint32()
+  external int NumberOfSnippets;
+
+  @ffi.Uint32()
+  external int DeviceGroupMask;
+
+  @ffi.Array.multi([508])
+  external ffi.Array<ffi.Int8> Reserved;
+}
+
+@ffi.Packed(2)
+class TW_GRAYRESPONSE extends ffi.Struct {
+  @ffi.Array.multi([1])
+  external ffi.Array<TW_ELEMENT8> Response;
+}
+
+@ffi.Packed(2)
 class TW_VERSION extends ffi.Struct {
   @ffi.Uint16()
   external int MajorNum;
@@ -285,15 +444,69 @@ class TW_VERSION extends ffi.Struct {
 
   @ffi.Uint16()
   external int Country;
-  
-  @ffi.Array(34)
+
+  @ffi.Array.multi([34])
   external ffi.Array<ffi.Int8> Info;
 }
 
-class TW_IDENTITY extends ffi.Opaque {}
+@ffi.Packed(2)
+class TW_IDENTITY extends ffi.Struct {
+  @ffi.Uint32()
+  external int Id;
 
-class TW_IMAGEINFO extends ffi.Opaque {}
+  external TW_VERSION Version;
 
+  @ffi.Uint16()
+  external int ProtocolMajor;
+
+  @ffi.Uint16()
+  external int ProtocolMinor;
+
+  @ffi.Uint32()
+  external int SupportedGroups;
+
+  @ffi.Array.multi([34])
+  external ffi.Array<ffi.Int8> Manufacturer;
+
+  @ffi.Array.multi([34])
+  external ffi.Array<ffi.Int8> ProductFamily;
+
+  @ffi.Array.multi([34])
+  external ffi.Array<ffi.Int8> ProductName;
+}
+
+@ffi.Packed(2)
+class TW_IMAGEINFO extends ffi.Struct {
+  external TW_FIX32 XResolution;
+
+  external TW_FIX32 YResolution;
+
+  @ffi.Int32()
+  external int ImageWidth;
+
+  @ffi.Int32()
+  external int ImageLength;
+
+  @ffi.Int16()
+  external int SamplesPerPixel;
+
+  @ffi.Array.multi([8])
+  external ffi.Array<ffi.Int16> BitsPerSample;
+
+  @ffi.Int16()
+  external int BitsPerPixel;
+
+  @ffi.Uint16()
+  external int Planar;
+
+  @ffi.Int16()
+  external int PixelType;
+
+  @ffi.Uint16()
+  external int Compression;
+}
+
+@ffi.Packed(2)
 class TW_IMAGELAYOUT extends ffi.Struct {
   external TW_FRAME Frame;
 
@@ -307,6 +520,7 @@ class TW_IMAGELAYOUT extends ffi.Struct {
   external int FrameNumber;
 }
 
+@ffi.Packed(2)
 class TW_MEMORY extends ffi.Struct {
   @ffi.Uint32()
   external int Flags;
@@ -317,6 +531,7 @@ class TW_MEMORY extends ffi.Struct {
   external ffi.Pointer<ffi.Void> TheMem;
 }
 
+@ffi.Packed(2)
 class TW_IMAGEMEMXFER extends ffi.Struct {
   @ffi.Uint16()
   external int Compression;
@@ -342,8 +557,37 @@ class TW_IMAGEMEMXFER extends ffi.Struct {
   external TW_MEMORY Memory;
 }
 
-class TW_JPEGCOMPRESSION extends ffi.Opaque {}
+@ffi.Packed(2)
+class TW_JPEGCOMPRESSION extends ffi.Struct {
+  @ffi.Uint16()
+  external int ColorSpace;
 
+  @ffi.Uint32()
+  external int SubSampling;
+
+  @ffi.Uint16()
+  external int NumComponents;
+
+  @ffi.Uint16()
+  external int RestartFrequency;
+
+  @ffi.Array.multi([4])
+  external ffi.Array<ffi.Uint16> QuantMap;
+
+  @ffi.Array.multi([4])
+  external ffi.Array<TW_MEMORY> QuantTable;
+
+  @ffi.Array.multi([4])
+  external ffi.Array<ffi.Uint16> HuffmanMap;
+
+  @ffi.Array.multi([2])
+  external ffi.Array<TW_MEMORY> HuffmanDC;
+
+  @ffi.Array.multi([2])
+  external ffi.Array<TW_MEMORY> HuffmanAC;
+}
+
+@ffi.Packed(2)
 class TW_METRICS extends ffi.Struct {
   @ffi.Uint32()
   external int SizeOf;
@@ -355,6 +599,7 @@ class TW_METRICS extends ffi.Struct {
   external int SheetCount;
 }
 
+@ffi.Packed(2)
 class TW_ONEVALUE extends ffi.Struct {
   @ffi.Uint16()
   external int ItemType;
@@ -363,8 +608,19 @@ class TW_ONEVALUE extends ffi.Struct {
   external int Item;
 }
 
-class TW_PALETTE8 extends ffi.Opaque {}
+@ffi.Packed(2)
+class TW_PALETTE8 extends ffi.Struct {
+  @ffi.Uint16()
+  external int NumColors;
 
+  @ffi.Uint16()
+  external int PaletteType;
+
+  @ffi.Array.multi([256])
+  external ffi.Array<TW_ELEMENT8> Colors;
+}
+
+@ffi.Packed(2)
 class TW_PASSTHRU extends ffi.Struct {
   external ffi.Pointer<ffi.Void> pCommand;
 
@@ -383,11 +639,13 @@ class TW_PASSTHRU extends ffi.Struct {
   external int DataBytesXfered;
 }
 
+@ffi.Packed(2)
 class TW_PENDINGXFERS extends ffi.Struct {
   @ffi.Uint16()
   external int Count;
 }
 
+@ffi.Packed(2)
 class TW_RANGE extends ffi.Struct {
   @ffi.Uint16()
   external int ItemType;
@@ -408,10 +666,25 @@ class TW_RANGE extends ffi.Struct {
   external int CurrentValue;
 }
 
-class TW_RGBRESPONSE extends ffi.Opaque {}
+@ffi.Packed(2)
+class TW_RGBRESPONSE extends ffi.Struct {
+  @ffi.Array.multi([1])
+  external ffi.Array<TW_ELEMENT8> Response;
+}
 
-class TW_SETUPFILEXFER extends ffi.Opaque {}
+@ffi.Packed(2)
+class TW_SETUPFILEXFER extends ffi.Struct {
+  @ffi.Array.multi([256])
+  external ffi.Array<ffi.Int8> FileName;
 
+  @ffi.Uint16()
+  external int Format;
+
+  @ffi.Int16()
+  external int VRefNum;
+}
+
+@ffi.Packed(2)
 class TW_SETUPMEMXFER extends ffi.Struct {
   @ffi.Uint32()
   external int MinBufSize;
@@ -423,11 +696,13 @@ class TW_SETUPMEMXFER extends ffi.Struct {
   external int Preferred;
 }
 
+@ffi.Packed(2)
 class TW_STATUS extends ffi.Struct {
   @ffi.Uint16()
   external int ConditionCode;
 }
 
+@ffi.Packed(2)
 class TW_STATUSUTF8 extends ffi.Struct {
   external TW_STATUS Status;
 
@@ -437,6 +712,7 @@ class TW_STATUSUTF8 extends ffi.Struct {
   external ffi.Pointer<ffi.Void> UTF8string;
 }
 
+@ffi.Packed(2)
 class TW_TWAINDIRECT extends ffi.Struct {
   @ffi.Uint32()
   external int SizeOf;
@@ -455,6 +731,7 @@ class TW_TWAINDIRECT extends ffi.Struct {
   external int ReceiveSize;
 }
 
+@ffi.Packed(2)
 class TW_USERINTERFACE extends ffi.Struct {
   @ffi.Uint16()
   external int ShowUI;
@@ -465,6 +742,7 @@ class TW_USERINTERFACE extends ffi.Struct {
   external ffi.Pointer<ffi.Void> hParent;
 }
 
+@ffi.Packed(2)
 class TW_SETUPFILEXFER2 extends ffi.Struct {
   external ffi.Pointer<ffi.Void> FileName;
 
@@ -481,10 +759,35 @@ class TW_SETUPFILEXFER2 extends ffi.Struct {
   external int parID;
 }
 
-class TW_TWUNKIDENTITY extends ffi.Opaque {}
+@ffi.Packed(2)
+class TW_TWUNKIDENTITY extends ffi.Struct {
+  external TW_IDENTITY identity;
 
-class TW_TWUNKDSENTRYPARAMS extends ffi.Opaque {}
+  @ffi.Array.multi([256])
+  external ffi.Array<ffi.Int8> dsPath;
+}
 
+@ffi.Packed(2)
+class TW_TWUNKDSENTRYPARAMS extends ffi.Struct {
+  @ffi.Int8()
+  external int destFlag;
+
+  external TW_IDENTITY dest;
+
+  @ffi.Int32()
+  external int dataGroup;
+
+  @ffi.Int16()
+  external int dataArgType;
+
+  @ffi.Int16()
+  external int message;
+
+  @ffi.Int32()
+  external int pDataSize;
+}
+
+@ffi.Packed(2)
 class TW_TWUNKDSENTRYRETURN extends ffi.Struct {
   @ffi.Uint16()
   external int returnCode;
@@ -496,6 +799,7 @@ class TW_TWUNKDSENTRYRETURN extends ffi.Struct {
   external int pDataSize;
 }
 
+@ffi.Packed(2)
 class TW_CAPEXT extends ffi.Struct {
   @ffi.Uint16()
   external int Cap;
@@ -504,8 +808,19 @@ class TW_CAPEXT extends ffi.Struct {
   external int Properties;
 }
 
-class TW_SETUPAUDIOFILEXFER extends ffi.Opaque {}
+@ffi.Packed(2)
+class TW_SETUPAUDIOFILEXFER extends ffi.Struct {
+  @ffi.Array.multi([256])
+  external ffi.Array<ffi.Int8> FileName;
 
+  @ffi.Uint16()
+  external int Format;
+
+  @ffi.Int16()
+  external int VRefNum;
+}
+
+@ffi.Packed(2)
 class TW_ENTRYPOINT extends ffi.Struct {
   @ffi.Uint32()
   external int Size;
@@ -521,6 +836,7 @@ class TW_ENTRYPOINT extends ffi.Struct {
   external ffi.Pointer<ffi.NativeFunction<DSM_MEMUNLOCK>> DSM_MemUnlock;
 }
 
+@ffi.Packed(2)
 class TW_FILTER_DESCRIPTOR extends ffi.Struct {
   @ffi.Uint32()
   external int Size;
@@ -547,6 +863,7 @@ class TW_FILTER_DESCRIPTOR extends ffi.Struct {
   external int Replacement;
 }
 
+@ffi.Packed(2)
 class TW_FILTER extends ffi.Struct {
   @ffi.Uint32()
   external int Size;

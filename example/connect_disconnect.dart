@@ -12,13 +12,13 @@ final twainDsm = TwainDsm(DynamicLibrary.open(kIsX64
     : '${Directory.current.path}/twaindsm/TWAINDSM32-2.4.3.dll'));
 
 void main(List<String> arguments) {
-  var myInfoStruct = TWIdentity();
+  var myInfoPtr = calloc<TW_IDENTITY>();
   var parentPtr = calloc<Int32>();
 
-  fillMyInfo(myInfoStruct);
+  fillMyInfo(myInfoPtr.ref);
 
   try {
-    var connect = twainDsm.DSM_Entry(myInfoStruct.pointer, nullptr, DG_CONTROL,
+    var connect = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
         DAT_PARENT, MSG_OPENDSM, parentPtr.cast<Void>());
     if (connect != TWRC_SUCCESS) {
       print('DG_CONTROL / DAT_PARENT / MSG_OPENDSM Failed: $connect\n');
@@ -26,7 +26,7 @@ void main(List<String> arguments) {
     }
     print('connect success');
 
-    var disconnect = twainDsm.DSM_Entry(myInfoStruct.pointer, nullptr, DG_CONTROL,
+    var disconnect = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
         DAT_PARENT, MSG_CLOSEDSM, parentPtr.cast<Void>());
     if (disconnect != TWRC_SUCCESS) {
       print('DG_CONTROL / DAT_PARENT / MSG_CLOSEDSM Failed: $disconnect\n');
@@ -34,14 +34,14 @@ void main(List<String> arguments) {
     }
     print('disconnect success');
   } finally {
-    myInfoStruct.dispose();
+    calloc.free(myInfoPtr);
     calloc.free(parentPtr);
   }
 }
 
-void fillMyInfo(TWIdentity myInfo) {
+void fillMyInfo(TW_IDENTITY myInfo) {
   myInfo.Id = 0;
-  var version = myInfo.Version.ref;
+  var version = myInfo.Version;
   version.MajorNum = 2;
   version.MinorNum = 0;
   version.Language = TWLG_ENGLISH_CANADIAN;
@@ -50,7 +50,7 @@ void fillMyInfo(TWIdentity myInfo) {
   myInfo.ProtocolMajor = 2;
   myInfo.ProtocolMinor = 4;
   myInfo.SupportedGroups = DF_APP2 | DG_IMAGE | DG_CONTROL;
-  myInfo.Manufacturer = 'App\'s Manufacturer';
-  myInfo.ProductFamily = 'App\'s Product Family';
-  myInfo.ProductName = 'Specific App Product Name';
+  myInfo.setManufacturer('App\'s Manufacturer');
+  myInfo.setProductFamily('App\'s Product Family');
+  myInfo.setProductName('Specific App Product Name');
 }
