@@ -5,11 +5,18 @@ import 'dart:ffi' as ffi;
 
 /// Bindings to `twain.h`.
 class TwainDsm {
-  /// Holds the Dynamic library.
-  final ffi.DynamicLibrary _dylib;
+  /// Holds the symbol lookup function.
+  final ffi.Pointer<T> Function<T extends ffi.NativeType>(String symbolName)
+      _lookup;
 
   /// The symbols are looked up in [dynamicLibrary].
-  TwainDsm(ffi.DynamicLibrary dynamicLibrary) : _dylib = dynamicLibrary;
+  TwainDsm(ffi.DynamicLibrary dynamicLibrary) : _lookup = dynamicLibrary.lookup;
+
+  /// The symbols are looked up with [lookup].
+  TwainDsm.fromLookup(
+      ffi.Pointer<T> Function<T extends ffi.NativeType>(String symbolName)
+          lookup)
+      : _lookup = lookup;
 
   int DSM_Entry(
     ffi.Pointer<TW_IDENTITY> pOrigin,
@@ -19,8 +26,7 @@ class TwainDsm {
     int MSG,
     ffi.Pointer<ffi.Void> pData,
   ) {
-    return (_DSM_Entry ??=
-        _dylib.lookupFunction<_c_DSM_Entry, _dart_DSM_Entry>('DSM_Entry'))(
+    return _DSM_Entry(
       pOrigin,
       pDest,
       DG,
@@ -30,7 +36,10 @@ class TwainDsm {
     );
   }
 
-  _dart_DSM_Entry? _DSM_Entry;
+  late final _DSM_Entry_ptr =
+      _lookup<ffi.NativeFunction<_c_DSM_Entry>>('DSM_Entry');
+  late final _dart_DSM_Entry _DSM_Entry =
+      _DSM_Entry_ptr.asFunction<_dart_DSM_Entry>();
 
   int DS_Entry(
     ffi.Pointer<TW_IDENTITY> pOrigin,
@@ -39,8 +48,7 @@ class TwainDsm {
     int MSG,
     ffi.Pointer<ffi.Void> pData,
   ) {
-    return (_DS_Entry ??=
-        _dylib.lookupFunction<_c_DS_Entry, _dart_DS_Entry>('DS_Entry'))(
+    return _DS_Entry(
       pOrigin,
       DG,
       DAT,
@@ -49,7 +57,10 @@ class TwainDsm {
     );
   }
 
-  _dart_DS_Entry? _DS_Entry;
+  late final _DS_Entry_ptr =
+      _lookup<ffi.NativeFunction<_c_DS_Entry>>('DS_Entry');
+  late final _dart_DS_Entry _DS_Entry =
+      _DS_Entry_ptr.asFunction<_dart_DS_Entry>();
 
   int TWAIN_Callback(
     ffi.Pointer<TW_IDENTITY> pOrigin,
@@ -59,9 +70,7 @@ class TwainDsm {
     int MSG,
     ffi.Pointer<ffi.Void> pData,
   ) {
-    return (_TWAIN_Callback ??=
-        _dylib.lookupFunction<_c_TWAIN_Callback, _dart_TWAIN_Callback>(
-            'TWAIN_Callback'))(
+    return _TWAIN_Callback(
       pOrigin,
       pDest,
       DG,
@@ -71,53 +80,62 @@ class TwainDsm {
     );
   }
 
-  _dart_TWAIN_Callback? _TWAIN_Callback;
+  late final _TWAIN_Callback_ptr =
+      _lookup<ffi.NativeFunction<_c_TWAIN_Callback>>('TWAIN_Callback');
+  late final _dart_TWAIN_Callback _TWAIN_Callback =
+      _TWAIN_Callback_ptr.asFunction<_dart_TWAIN_Callback>();
 
   ffi.Pointer<ffi.Void> DSM_MemAllocate(
     int arg0,
   ) {
-    return (_DSM_MemAllocate ??=
-        _dylib.lookupFunction<_c_DSM_MemAllocate, _dart_DSM_MemAllocate>(
-            'DSM_MemAllocate'))(
+    return _DSM_MemAllocate(
       arg0,
     );
   }
 
-  _dart_DSM_MemAllocate? _DSM_MemAllocate;
+  late final _DSM_MemAllocate_ptr =
+      _lookup<ffi.NativeFunction<_c_DSM_MemAllocate>>('DSM_MemAllocate');
+  late final _dart_DSM_MemAllocate _DSM_MemAllocate =
+      _DSM_MemAllocate_ptr.asFunction<_dart_DSM_MemAllocate>();
 
   void DSM_MemFree(
     ffi.Pointer<ffi.Void> arg0,
   ) {
-    return (_DSM_MemFree ??= _dylib
-        .lookupFunction<_c_DSM_MemFree, _dart_DSM_MemFree>('DSM_MemFree'))(
+    return _DSM_MemFree(
       arg0,
     );
   }
 
-  _dart_DSM_MemFree? _DSM_MemFree;
+  late final _DSM_MemFree_ptr =
+      _lookup<ffi.NativeFunction<_c_DSM_MemFree>>('DSM_MemFree');
+  late final _dart_DSM_MemFree _DSM_MemFree =
+      _DSM_MemFree_ptr.asFunction<_dart_DSM_MemFree>();
 
   ffi.Pointer<ffi.Void> DSM_MemLock(
     ffi.Pointer<ffi.Void> arg0,
   ) {
-    return (_DSM_MemLock ??= _dylib
-        .lookupFunction<_c_DSM_MemLock, _dart_DSM_MemLock>('DSM_MemLock'))(
+    return _DSM_MemLock(
       arg0,
     );
   }
 
-  _dart_DSM_MemLock? _DSM_MemLock;
+  late final _DSM_MemLock_ptr =
+      _lookup<ffi.NativeFunction<_c_DSM_MemLock>>('DSM_MemLock');
+  late final _dart_DSM_MemLock _DSM_MemLock =
+      _DSM_MemLock_ptr.asFunction<_dart_DSM_MemLock>();
 
   void DSM_MemUnlock(
     ffi.Pointer<ffi.Void> arg0,
   ) {
-    return (_DSM_MemUnlock ??=
-        _dylib.lookupFunction<_c_DSM_MemUnlock, _dart_DSM_MemUnlock>(
-            'DSM_MemUnlock'))(
+    return _DSM_MemUnlock(
       arg0,
     );
   }
 
-  _dart_DSM_MemUnlock? _DSM_MemUnlock;
+  late final _DSM_MemUnlock_ptr =
+      _lookup<ffi.NativeFunction<_c_DSM_MemUnlock>>('DSM_MemUnlock');
+  late final _dart_DSM_MemUnlock _DSM_MemUnlock =
+      _DSM_MemUnlock_ptr.asFunction<_dart_DSM_MemUnlock>();
 }
 
 /// Structure Definitions                                                    *
