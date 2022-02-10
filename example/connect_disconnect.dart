@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 import 'package:twaindsm/structs.dart';
 import 'package:twaindsm/twaindsm.dart';
+import 'package:twaindsm/utils.dart';
+import 'package:win32/win32.dart';
 
 final bool kIsX64 = sizeOf<Pointer>() == 8;
 
@@ -12,36 +14,42 @@ final twainDsm = TwainDsm(DynamicLibrary.open(kIsX64
     : '${Directory.current.path}/twaindsm/TWAINDSM32-2.4.3.dll'));
 
 void main(List<String> arguments) {
-  var myInfoStruct = TWIdentity();
-  var parentPtr = calloc<Int32>();
+  var myInfoPtr = calloc<TW_IDENTITY>();
+  var consolePtr = calloc<Int32>();
+  var entryPointPtr = calloc<TW_ENTRYPOINT>();
 
-  fillMyInfo(myInfoStruct);
+  fillMyInfo(myInfoPtr.ref);
+  consolePtr.value = GetConsoleWindow();
 
   try {
-    var connect = twainDsm.DSM_Entry(myInfoStruct.pointer, nullptr, DG_CONTROL,
-        DAT_PARENT, MSG_OPENDSM, parentPtr.cast<Void>());
-    if (connect != TWRC_SUCCESS) {
-      print('DG_CONTROL / DAT_PARENT / MSG_OPENDSM Failed: $connect\n');
+    if (!connectDSM(myInfoPtr, consolePtr)) {
       return;
     }
-    print('connect success');
+    print('connectDSM success');
 
-    var disconnect = twainDsm.DSM_Entry(myInfoStruct.pointer, nullptr, DG_CONTROL,
-        DAT_PARENT, MSG_CLOSEDSM, parentPtr.cast<Void>());
-    if (disconnect != TWRC_SUCCESS) {
-      print('DG_CONTROL / DAT_PARENT / MSG_CLOSEDSM Failed: $disconnect\n');
+    if (myInfoPtr.ref.SupportedGroups & DF_DSM2 == DF_DSM2) {
+      if (!getEntryPoint(myInfoPtr, entryPointPtr)) {
+        return;
+      }
+      print('getEntryPoint success');
+    }
+
+    operateDataSource(myInfoPtr);
+
+    if (!disconnectDSM(myInfoPtr, consolePtr)) {
       return;
     }
-    print('disconnect success');
+    print('disconnectDSM success');
   } finally {
-    myInfoStruct.dispose();
-    calloc.free(parentPtr);
+    calloc.free(myInfoPtr);
+    calloc.free(consolePtr);
+    calloc.free(entryPointPtr);
   }
 }
 
-void fillMyInfo(TWIdentity myInfo) {
+void fillMyInfo(TW_IDENTITY myInfo) {
   myInfo.Id = 0;
-  var version = myInfo.Version.ref;
+  var version = myInfo.Version;
   version.MajorNum = 2;
   version.MinorNum = 0;
   version.Language = TWLG_ENGLISH_CANADIAN;
@@ -50,7 +58,133 @@ void fillMyInfo(TWIdentity myInfo) {
   myInfo.ProtocolMajor = 2;
   myInfo.ProtocolMinor = 4;
   myInfo.SupportedGroups = DF_APP2 | DG_IMAGE | DG_CONTROL;
-  myInfo.Manufacturer = 'App\'s Manufacturer';
-  myInfo.ProductFamily = 'App\'s Product Family';
-  myInfo.ProductName = 'Specific App Product Name';
+  myInfo.setManufacturer('App\'s Manufacturer');
+  myInfo.setProductFamily('App\'s Product Family');
+  myInfo.setProductName('Specific App Product Name');
+}
+
+bool connectDSM(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<Int32> parentPtr,
+) {
+  var connect = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL, DAT_PARENT,
+      MSG_OPENDSM, parentPtr.cast());
+  if (connect != TWRC_SUCCESS) {
+    print('DG_CONTROL / DAT_PARENT / MSG_OPENDSM Failed: $connect');
+    return false;
+  }
+  return true;
+}
+
+bool disconnectDSM(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<Int32> parentPtr,
+) {
+  var disconnect = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+      DAT_PARENT, MSG_CLOSEDSM, parentPtr.cast());
+  if (disconnect != TWRC_SUCCESS) {
+    print('DG_CONTROL / DAT_PARENT / MSG_CLOSEDSM Failed: $disconnect');
+    return false;
+  }
+  return true;
+}
+
+bool getEntryPoint(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_ENTRYPOINT> entryPointPtr,
+) {
+  entryPointPtr.ref.Size = sizeOf<TW_ENTRYPOINT>();
+  var entryPoint = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+      DAT_ENTRYPOINT, MSG_GET, entryPointPtr.cast());
+  if (entryPoint != TWRC_SUCCESS) {
+    print('DG_CONTROL / DAT_ENTRYPOINT / MSG_GET Failed: $entryPoint');
+    return false;
+  }
+  return true;
+}
+
+List<Pointer<TW_IDENTITY>>? iterateDataSource(Pointer<TW_IDENTITY> myInfoPtr) {
+  var dataSource = calloc<TW_IDENTITY>();
+  var getFirst = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+        DAT_IDENTITY, MSG_GETFIRST, dataSource.cast());
+  if (getFirst == TWRC_ENDOFLIST) {
+    calloc.free(dataSource);
+    return [];
+  } else if (getFirst != TWRC_SUCCESS) {
+    var twcc = twainDsm.getConditionCodeString(dataSource);
+    print('DG_CONTROL / DAT_IDENTITY / MSG_GETNEXT Failed: $twcc');
+    calloc.free(dataSource);
+    return null;
+  }
+  var res = [dataSource];
+
+  int getNext;
+  do {
+    dataSource = calloc<TW_IDENTITY>();
+    getNext = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+        DAT_IDENTITY, MSG_GETNEXT, dataSource.cast());
+    if (getNext == TWRC_SUCCESS) {
+      res.add(dataSource);
+    } else if (getNext == TWRC_ENDOFLIST) {
+      calloc.free(dataSource);
+      return res;
+    } else if (getNext == TWRC_FAILURE) {
+      var twcc = twainDsm.getConditionCodeString(dataSource);
+      print('DG_CONTROL / DAT_IDENTITY / MSG_GETNEXT Failed: $twcc');
+      calloc.free(dataSource);
+    }
+  } while (getNext == TWRC_SUCCESS);
+
+  return res;
+}
+
+void operateDataSource(Pointer<TW_IDENTITY> myInfoPtr) {
+  var dataSourceList = iterateDataSource(myInfoPtr);
+  if (dataSourceList == null || dataSourceList.isEmpty) {
+    print('dataSourceList is null or emtpy');
+    return;
+  }
+
+  try {
+    var dataSource = dataSourceList[0];
+    if (!loadDS(myInfoPtr, dataSource)) {
+      return;
+    }
+    print('loadDS success');
+
+    if (!unloadDS(myInfoPtr, dataSource)) {
+      return;
+    }
+    print('unloadDS success');
+  } finally {
+    dataSourceList.forEach((e) => calloc.free(e));
+  }
+}
+
+bool loadDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+) {
+  var openDS = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+      DAT_IDENTITY, MSG_OPENDS, dataSourcePtr.cast());
+  if (openDS != TWRC_SUCCESS) {
+    var twcc = twainDsm.getConditionCodeString(dataSourcePtr);
+    print('DG_CONTROL / DAT_IDENTITY / MSG_OPENDS Failed: $twcc');
+    return false;
+  }
+  return true;
+}
+
+bool unloadDS(
+  Pointer<TW_IDENTITY> myInfoPtr,
+  Pointer<TW_IDENTITY> dataSourcePtr,
+) {
+  var closeDS = twainDsm.DSM_Entry(myInfoPtr, nullptr, DG_CONTROL,
+      DAT_IDENTITY, MSG_CLOSEDS, dataSourcePtr.cast());
+  if (closeDS != TWRC_SUCCESS) {
+    var twcc = twainDsm.getConditionCodeString(dataSourcePtr);
+    print('DG_CONTROL / DAT_ENTRYPOINT / MSG_CLOSEDS Failed: $twcc');
+    return false;
+  }
+  return true;
 }

@@ -1,0 +1,54 @@
+import 'dart:ffi';
+
+import 'package:ffi/ffi.dart';
+
+import 'twaindsm.dart';
+
+const _conditoinCodeMap = {
+  TWCC_SUCCESS: 'TWCC_SUCCESS',
+  TWCC_BUMMER: 'TWCC_BUMMER',
+  TWCC_LOWMEMORY: 'TWCC_LOWMEMORY',
+  TWCC_NODS: 'TWCC_NODS',
+  TWCC_MAXCONNECTIONS: 'TWCC_MAXCONNECTIONS',
+  TWCC_OPERATIONERROR: 'TWCC_OPERATIONERROR',
+  TWCC_BADCAP: 'TWCC_BADCAP',
+  TWCC_BADPROTOCOL: 'TWCC_BADPROTOCOL',
+  TWCC_BADVALUE: 'TWCC_BADVALUE',
+  TWCC_SEQERROR: 'TWCC_SEQERROR',
+  TWCC_BADDEST: 'TWCC_BADDEST',
+  TWCC_CAPUNSUPPORTED: 'TWCC_CAPUNSUPPORTED',
+  TWCC_CAPBADOPERATION: 'TWCC_CAPBADOPERATION',
+  TWCC_CAPSEQERROR: 'TWCC_CAPSEQERROR',
+  TWCC_DENIED: 'TWCC_DENIED',
+  TWCC_FILEEXISTS: 'TWCC_FILEEXISTS',
+  TWCC_FILENOTFOUND: 'TWCC_FILENOTFOUND',
+  TWCC_NOTEMPTY: 'TWCC_NOTEMPTY',
+  TWCC_PAPERJAM: 'TWCC_PAPERJAM',
+  TWCC_PAPERDOUBLEFEED: 'TWCC_PAPERDOUBLEFEED',
+  TWCC_FILEWRITEERROR: 'TWCC_FILEWRITEERROR',
+  TWCC_CHECKDEVICEONLINE: 'TWCC_CHECKDEVICEONLINE',
+  TWCC_INTERLOCK: 'TWCC_INTERLOCK',
+  TWCC_DAMAGEDCORNER: 'TWCC_DAMAGEDCORNER',
+  TWCC_FOCUSERROR: 'TWCC_FOCUSERROR',
+  TWCC_DOCTOOLIGHT: 'TWCC_DOCTOOLIGHT',
+  TWCC_DOCTOODARK: 'TWCC_DOCTOODARK',
+  TWCC_NOMEDIA: 'TWCC_NOMEDIA',
+};
+
+extension TwainDsmUtil on TwainDsm {
+  int getConditionCode(Pointer<TW_IDENTITY> dataSourcePtr) {
+    var statusPtr = calloc<TW_STATUS>();
+    try {
+      var getStatus = DSM_Entry(dataSourcePtr, nullptr, DG_CONTROL, DAT_STATUS,
+          MSG_GET, statusPtr.cast());
+      return getStatus == TWRC_SUCCESS ? statusPtr.ref.ConditionCode : -1;
+    } finally {
+      calloc.free(statusPtr);
+    }
+  }
+
+  String getConditionCodeString(Pointer<TW_IDENTITY> dataSourcePtr) {
+    var conditionCode = getConditionCode(dataSourcePtr);
+    return _conditoinCodeMap[conditionCode] ?? 'ConditionCode $conditionCode';
+  }
+}
