@@ -19,12 +19,12 @@ class TwainDsm {
       : _lookup = lookup;
 
   int DSM_Entry(
-    ffi.Pointer<TW_IDENTITY> pOrigin,
-    ffi.Pointer<TW_IDENTITY> pDest,
+    pTW_IDENTITY pOrigin,
+    pTW_IDENTITY pDest,
     int DG,
     int DAT,
     int MSG,
-    ffi.Pointer<ffi.Void> pData,
+    TW_MEMREF pData,
   ) {
     return _DSM_Entry(
       pOrigin,
@@ -36,17 +36,19 @@ class TwainDsm {
     );
   }
 
-  late final _DSM_Entry_ptr =
-      _lookup<ffi.NativeFunction<_c_DSM_Entry>>('DSM_Entry');
-  late final _dart_DSM_Entry _DSM_Entry =
-      _DSM_Entry_ptr.asFunction<_dart_DSM_Entry>();
+  late final _DSM_EntryPtr = _lookup<
+      ffi.NativeFunction<
+          TW_UINT16 Function(pTW_IDENTITY, pTW_IDENTITY, TW_UINT32, TW_UINT16,
+              TW_UINT16, TW_MEMREF)>>('DSM_Entry');
+  late final _DSM_Entry = _DSM_EntryPtr.asFunction<
+      int Function(pTW_IDENTITY, pTW_IDENTITY, int, int, int, TW_MEMREF)>();
 
   int DS_Entry(
-    ffi.Pointer<TW_IDENTITY> pOrigin,
+    pTW_IDENTITY pOrigin,
     int DG,
     int DAT,
     int MSG,
-    ffi.Pointer<ffi.Void> pData,
+    TW_MEMREF pData,
   ) {
     return _DS_Entry(
       pOrigin,
@@ -57,18 +59,20 @@ class TwainDsm {
     );
   }
 
-  late final _DS_Entry_ptr =
-      _lookup<ffi.NativeFunction<_c_DS_Entry>>('DS_Entry');
-  late final _dart_DS_Entry _DS_Entry =
-      _DS_Entry_ptr.asFunction<_dart_DS_Entry>();
+  late final _DS_EntryPtr = _lookup<
+      ffi.NativeFunction<
+          TW_UINT16 Function(pTW_IDENTITY, TW_UINT32, TW_UINT16, TW_UINT16,
+              TW_MEMREF)>>('DS_Entry');
+  late final _DS_Entry = _DS_EntryPtr.asFunction<
+      int Function(pTW_IDENTITY, int, int, int, TW_MEMREF)>();
 
   int TWAIN_Callback(
-    ffi.Pointer<TW_IDENTITY> pOrigin,
-    ffi.Pointer<TW_IDENTITY> pDest,
+    pTW_IDENTITY pOrigin,
+    pTW_IDENTITY pDest,
     int DG,
     int DAT,
     int MSG,
-    ffi.Pointer<ffi.Void> pData,
+    TW_MEMREF pData,
   ) {
     return _TWAIN_Callback(
       pOrigin,
@@ -80,12 +84,14 @@ class TwainDsm {
     );
   }
 
-  late final _TWAIN_Callback_ptr =
-      _lookup<ffi.NativeFunction<_c_TWAIN_Callback>>('TWAIN_Callback');
-  late final _dart_TWAIN_Callback _TWAIN_Callback =
-      _TWAIN_Callback_ptr.asFunction<_dart_TWAIN_Callback>();
+  late final _TWAIN_CallbackPtr = _lookup<
+      ffi.NativeFunction<
+          TW_UINT16 Function(pTW_IDENTITY, pTW_IDENTITY, TW_UINT32, TW_UINT16,
+              TW_UINT16, TW_MEMREF)>>('TWAIN_Callback');
+  late final _TWAIN_Callback = _TWAIN_CallbackPtr.asFunction<
+      int Function(pTW_IDENTITY, pTW_IDENTITY, int, int, int, TW_MEMREF)>();
 
-  ffi.Pointer<ffi.Void> DSM_MemAllocate(
+  TW_HANDLE DSM_MemAllocate(
     int arg0,
   ) {
     return _DSM_MemAllocate(
@@ -93,60 +99,65 @@ class TwainDsm {
     );
   }
 
-  late final _DSM_MemAllocate_ptr =
-      _lookup<ffi.NativeFunction<_c_DSM_MemAllocate>>('DSM_MemAllocate');
-  late final _dart_DSM_MemAllocate _DSM_MemAllocate =
-      _DSM_MemAllocate_ptr.asFunction<_dart_DSM_MemAllocate>();
+  late final _DSM_MemAllocatePtr =
+      _lookup<ffi.NativeFunction<TW_HANDLE Function(TW_UINT32)>>(
+          'DSM_MemAllocate');
+  late final _DSM_MemAllocate =
+      _DSM_MemAllocatePtr.asFunction<TW_HANDLE Function(int)>();
 
   void DSM_MemFree(
-    ffi.Pointer<ffi.Void> arg0,
+    TW_HANDLE arg0,
   ) {
     return _DSM_MemFree(
       arg0,
     );
   }
 
-  late final _DSM_MemFree_ptr =
-      _lookup<ffi.NativeFunction<_c_DSM_MemFree>>('DSM_MemFree');
-  late final _dart_DSM_MemFree _DSM_MemFree =
-      _DSM_MemFree_ptr.asFunction<_dart_DSM_MemFree>();
+  late final _DSM_MemFreePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(TW_HANDLE)>>('DSM_MemFree');
+  late final _DSM_MemFree =
+      _DSM_MemFreePtr.asFunction<void Function(TW_HANDLE)>();
 
-  ffi.Pointer<ffi.Void> DSM_MemLock(
-    ffi.Pointer<ffi.Void> arg0,
+  TW_MEMREF DSM_MemLock(
+    TW_HANDLE arg0,
   ) {
     return _DSM_MemLock(
       arg0,
     );
   }
 
-  late final _DSM_MemLock_ptr =
-      _lookup<ffi.NativeFunction<_c_DSM_MemLock>>('DSM_MemLock');
-  late final _dart_DSM_MemLock _DSM_MemLock =
-      _DSM_MemLock_ptr.asFunction<_dart_DSM_MemLock>();
+  late final _DSM_MemLockPtr =
+      _lookup<ffi.NativeFunction<TW_MEMREF Function(TW_HANDLE)>>('DSM_MemLock');
+  late final _DSM_MemLock =
+      _DSM_MemLockPtr.asFunction<TW_MEMREF Function(TW_HANDLE)>();
 
   void DSM_MemUnlock(
-    ffi.Pointer<ffi.Void> arg0,
+    TW_HANDLE arg0,
   ) {
     return _DSM_MemUnlock(
       arg0,
     );
   }
 
-  late final _DSM_MemUnlock_ptr =
-      _lookup<ffi.NativeFunction<_c_DSM_MemUnlock>>('DSM_MemUnlock');
-  late final _dart_DSM_MemUnlock _DSM_MemUnlock =
-      _DSM_MemUnlock_ptr.asFunction<_dart_DSM_MemUnlock>();
+  late final _DSM_MemUnlockPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(TW_HANDLE)>>(
+          'DSM_MemUnlock');
+  late final _DSM_MemUnlock =
+      _DSM_MemUnlockPtr.asFunction<void Function(TW_HANDLE)>();
 }
 
 /// Structure Definitions                                                    *
 @ffi.Packed(2)
 class TW_FIX32 extends ffi.Struct {
-  @ffi.Int16()
+  @TW_INT16()
   external int Whole;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int Frac;
 }
+
+typedef TW_INT16 = ffi.Int16;
+typedef TW_UINT16 = ffi.Uint16;
 
 @ffi.Packed(2)
 class TW_FRAME extends ffi.Struct {
@@ -189,57 +200,66 @@ class TW_TRANSFORMSTAGE extends ffi.Struct {
 
 @ffi.Packed(2)
 class TW_ARRAY extends ffi.Struct {
-  @ffi.Uint16()
+  @TW_UINT16()
   external int ItemType;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int NumItems;
 
   @ffi.Array.multi([1])
-  external ffi.Array<ffi.Uint8> ItemList;
+  external ffi.Array<TW_UINT8> ItemList;
 }
+
+typedef TW_UINT32 = ffi.Uint32;
+typedef TW_UINT8 = ffi.Uint8;
 
 @ffi.Packed(2)
 class TW_AUDIOINFO extends ffi.Struct {
   @ffi.Array.multi([256])
   external ffi.Array<ffi.Int8> Name;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int Reserved;
 }
 
 @ffi.Packed(2)
 class TW_CALLBACK extends ffi.Struct {
-  external ffi.Pointer<ffi.Void> CallBackProc;
+  external TW_MEMREF CallBackProc;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int RefCon;
 
-  @ffi.Int16()
+  @TW_INT16()
   external int Message;
 }
+
+typedef TW_MEMREF = ffi.Pointer<ffi.Void>;
 
 @ffi.Packed(2)
 class TW_CALLBACK2 extends ffi.Struct {
-  external ffi.Pointer<ffi.Void> CallBackProc;
+  external TW_MEMREF CallBackProc;
 
-  @ffi.Uint64()
+  @TW_UINTPTR()
   external int RefCon;
 
-  @ffi.Int16()
+  @TW_INT16()
   external int Message;
 }
 
+typedef TW_UINTPTR = ffi.Uint64;
+
 @ffi.Packed(2)
 class TW_CAPABILITY extends ffi.Struct {
-  @ffi.Uint16()
+  @TW_UINT16()
   external int Cap;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int ConType;
 
-  external ffi.Pointer<ffi.Void> hContainer;
+  external TW_HANDLE hContainer;
 }
+
+typedef TW_HANDLE = ffi.Pointer<ffi.Void>;
 
 @ffi.Packed(2)
 class TW_CIEPOINT extends ffi.Struct {
@@ -252,16 +272,16 @@ class TW_CIEPOINT extends ffi.Struct {
 
 @ffi.Packed(2)
 class TW_CIECOLOR extends ffi.Struct {
-  @ffi.Uint16()
+  @TW_UINT16()
   external int ColorSpace;
 
-  @ffi.Int16()
+  @TW_INT16()
   external int LowEndian;
 
-  @ffi.Int16()
+  @TW_INT16()
   external int DeviceDependent;
 
-  @ffi.Int32()
+  @TW_INT32()
   external int VersionNumber;
 
   external TW_TRANSFORMSTAGE StageABC;
@@ -280,107 +300,109 @@ class TW_CIECOLOR extends ffi.Struct {
   external ffi.Array<TW_FIX32> Samples;
 }
 
+typedef TW_INT32 = ffi.Int32;
+
 @ffi.Packed(2)
 class TW_CUSTOMDSDATA extends ffi.Struct {
-  @ffi.Uint32()
+  @TW_UINT32()
   external int InfoLength;
 
-  external ffi.Pointer<ffi.Void> hData;
+  external TW_HANDLE hData;
 }
 
 @ffi.Packed(2)
 class TW_DEVICEEVENT extends ffi.Struct {
-  @ffi.Uint32()
+  @TW_UINT32()
   external int Event;
 
   @ffi.Array.multi([256])
   external ffi.Array<ffi.Int8> DeviceName;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int BatteryMinutes;
 
-  @ffi.Int16()
+  @TW_INT16()
   external int BatteryPercentage;
 
-  @ffi.Int32()
+  @TW_INT32()
   external int PowerSupply;
 
   external TW_FIX32 XResolution;
 
   external TW_FIX32 YResolution;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int FlashUsed2;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int AutomaticCapture;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int TimeBeforeFirstCapture;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int TimeBetweenCaptures;
 }
 
 @ffi.Packed(2)
 class TW_ELEMENT8 extends ffi.Struct {
-  @ffi.Uint8()
+  @TW_UINT8()
   external int Index;
 
-  @ffi.Uint8()
+  @TW_UINT8()
   external int Channel1;
 
-  @ffi.Uint8()
+  @TW_UINT8()
   external int Channel2;
 
-  @ffi.Uint8()
+  @TW_UINT8()
   external int Channel3;
 }
 
 @ffi.Packed(2)
 class TW_ENUMERATION extends ffi.Struct {
-  @ffi.Uint16()
+  @TW_UINT16()
   external int ItemType;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int NumItems;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int CurrentIndex;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int DefaultIndex;
 
   @ffi.Array.multi([1])
-  external ffi.Array<ffi.Uint8> ItemList;
+  external ffi.Array<TW_UINT8> ItemList;
 }
 
 @ffi.Packed(2)
 class TW_EVENT extends ffi.Struct {
-  external ffi.Pointer<ffi.Void> pEvent;
+  external TW_MEMREF pEvent;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int TWMessage;
 }
 
 @ffi.Packed(2)
 class TW_INFO extends ffi.Struct {
-  @ffi.Uint16()
+  @TW_UINT16()
   external int InfoID;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int ItemType;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int NumItems;
 
-  @ffi.Uint64()
+  @TW_UINTPTR()
   external int Item;
 }
 
 @ffi.Packed(2)
 class TW_EXTIMAGEINFO extends ffi.Struct {
-  @ffi.Uint32()
+  @TW_UINT32()
   external int NumInfos;
 
   @ffi.Array.multi([1])
@@ -395,9 +417,9 @@ class TW_FILESYSTEM extends ffi.Struct {
   @ffi.Array.multi([256])
   external ffi.Array<ffi.Int8> OutputName;
 
-  external ffi.Pointer<ffi.Void> Context;
+  external TW_MEMREF Context;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int Size;
 
   @ffi.Array.multi([34])
@@ -406,24 +428,26 @@ class TW_FILESYSTEM extends ffi.Struct {
   @ffi.Array.multi([34])
   external ffi.Array<ffi.Int8> ModifiedTimeDate;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int FreeSpace;
 
-  @ffi.Int32()
+  @TW_INT32()
   external int NewImageSize;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int NumberOfFiles;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int NumberOfSnippets;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int DeviceGroupMask;
 
   @ffi.Array.multi([508])
-  external ffi.Array<ffi.Int8> Reserved;
+  external ffi.Array<TW_INT8> Reserved;
 }
+
+typedef TW_INT8 = ffi.Int8;
 
 @ffi.Packed(2)
 class TW_GRAYRESPONSE extends ffi.Struct {
@@ -433,16 +457,16 @@ class TW_GRAYRESPONSE extends ffi.Struct {
 
 @ffi.Packed(2)
 class TW_VERSION extends ffi.Struct {
-  @ffi.Uint16()
+  @TW_UINT16()
   external int MajorNum;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int MinorNum;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int Language;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int Country;
 
   @ffi.Array.multi([34])
@@ -451,18 +475,18 @@ class TW_VERSION extends ffi.Struct {
 
 @ffi.Packed(2)
 class TW_IDENTITY extends ffi.Struct {
-  @ffi.Uint32()
+  @TW_UINT32()
   external int Id;
 
   external TW_VERSION Version;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int ProtocolMajor;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int ProtocolMinor;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int SupportedGroups;
 
   @ffi.Array.multi([34])
@@ -481,77 +505,79 @@ class TW_IMAGEINFO extends ffi.Struct {
 
   external TW_FIX32 YResolution;
 
-  @ffi.Int32()
+  @TW_INT32()
   external int ImageWidth;
 
-  @ffi.Int32()
+  @TW_INT32()
   external int ImageLength;
 
-  @ffi.Int16()
+  @TW_INT16()
   external int SamplesPerPixel;
 
   @ffi.Array.multi([8])
-  external ffi.Array<ffi.Int16> BitsPerSample;
+  external ffi.Array<TW_INT16> BitsPerSample;
 
-  @ffi.Int16()
+  @TW_INT16()
   external int BitsPerPixel;
 
-  @ffi.Uint16()
+  @TW_BOOL()
   external int Planar;
 
-  @ffi.Int16()
+  @TW_INT16()
   external int PixelType;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int Compression;
 }
+
+typedef TW_BOOL = ffi.Uint16;
 
 @ffi.Packed(2)
 class TW_IMAGELAYOUT extends ffi.Struct {
   external TW_FRAME Frame;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int DocumentNumber;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int PageNumber;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int FrameNumber;
 }
 
 @ffi.Packed(2)
 class TW_MEMORY extends ffi.Struct {
-  @ffi.Uint32()
+  @TW_UINT32()
   external int Flags;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int Length;
 
-  external ffi.Pointer<ffi.Void> TheMem;
+  external TW_MEMREF TheMem;
 }
 
 @ffi.Packed(2)
 class TW_IMAGEMEMXFER extends ffi.Struct {
-  @ffi.Uint16()
+  @TW_UINT16()
   external int Compression;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int BytesPerRow;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int Columns;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int Rows;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int XOffset;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int YOffset;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int BytesWritten;
 
   external TW_MEMORY Memory;
@@ -559,26 +585,26 @@ class TW_IMAGEMEMXFER extends ffi.Struct {
 
 @ffi.Packed(2)
 class TW_JPEGCOMPRESSION extends ffi.Struct {
-  @ffi.Uint16()
+  @TW_UINT16()
   external int ColorSpace;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int SubSampling;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int NumComponents;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int RestartFrequency;
 
   @ffi.Array.multi([4])
-  external ffi.Array<ffi.Uint16> QuantMap;
+  external ffi.Array<TW_UINT16> QuantMap;
 
   @ffi.Array.multi([4])
   external ffi.Array<TW_MEMORY> QuantTable;
 
   @ffi.Array.multi([4])
-  external ffi.Array<ffi.Uint16> HuffmanMap;
+  external ffi.Array<TW_UINT16> HuffmanMap;
 
   @ffi.Array.multi([2])
   external ffi.Array<TW_MEMORY> HuffmanDC;
@@ -589,31 +615,31 @@ class TW_JPEGCOMPRESSION extends ffi.Struct {
 
 @ffi.Packed(2)
 class TW_METRICS extends ffi.Struct {
-  @ffi.Uint32()
+  @TW_UINT32()
   external int SizeOf;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int ImageCount;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int SheetCount;
 }
 
 @ffi.Packed(2)
 class TW_ONEVALUE extends ffi.Struct {
-  @ffi.Uint16()
+  @TW_UINT16()
   external int ItemType;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int Item;
 }
 
 @ffi.Packed(2)
 class TW_PALETTE8 extends ffi.Struct {
-  @ffi.Uint16()
+  @TW_UINT16()
   external int NumColors;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int PaletteType;
 
   @ffi.Array.multi([256])
@@ -622,47 +648,47 @@ class TW_PALETTE8 extends ffi.Struct {
 
 @ffi.Packed(2)
 class TW_PASSTHRU extends ffi.Struct {
-  external ffi.Pointer<ffi.Void> pCommand;
+  external TW_MEMREF pCommand;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int CommandBytes;
 
-  @ffi.Int32()
+  @TW_INT32()
   external int Direction;
 
-  external ffi.Pointer<ffi.Void> pData;
+  external TW_MEMREF pData;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int DataBytes;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int DataBytesXfered;
 }
 
 @ffi.Packed(2)
 class TW_PENDINGXFERS extends ffi.Struct {
-  @ffi.Uint16()
+  @TW_UINT16()
   external int Count;
 }
 
 @ffi.Packed(2)
 class TW_RANGE extends ffi.Struct {
-  @ffi.Uint16()
+  @TW_UINT16()
   external int ItemType;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int MinValue;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int MaxValue;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int StepSize;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int DefaultValue;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int CurrentValue;
 }
 
@@ -677,28 +703,28 @@ class TW_SETUPFILEXFER extends ffi.Struct {
   @ffi.Array.multi([256])
   external ffi.Array<ffi.Int8> FileName;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int Format;
 
-  @ffi.Int16()
+  @TW_INT16()
   external int VRefNum;
 }
 
 @ffi.Packed(2)
 class TW_SETUPMEMXFER extends ffi.Struct {
-  @ffi.Uint32()
+  @TW_UINT32()
   external int MinBufSize;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int MaxBufSize;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int Preferred;
 }
 
 @ffi.Packed(2)
 class TW_STATUS extends ffi.Struct {
-  @ffi.Uint16()
+  @TW_UINT16()
   external int ConditionCode;
 }
 
@@ -706,56 +732,56 @@ class TW_STATUS extends ffi.Struct {
 class TW_STATUSUTF8 extends ffi.Struct {
   external TW_STATUS Status;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int Size;
 
-  external ffi.Pointer<ffi.Void> UTF8string;
+  external TW_HANDLE UTF8string;
 }
 
 @ffi.Packed(2)
 class TW_TWAINDIRECT extends ffi.Struct {
-  @ffi.Uint32()
+  @TW_UINT32()
   external int SizeOf;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int CommunicationManager;
 
-  external ffi.Pointer<ffi.Void> Send;
+  external TW_HANDLE Send;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int SendSize;
 
-  external ffi.Pointer<ffi.Void> Receive;
+  external TW_HANDLE Receive;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int ReceiveSize;
 }
 
 @ffi.Packed(2)
 class TW_USERINTERFACE extends ffi.Struct {
-  @ffi.Uint16()
+  @TW_BOOL()
   external int ShowUI;
 
-  @ffi.Uint16()
+  @TW_BOOL()
   external int ModalUI;
 
-  external ffi.Pointer<ffi.Void> hParent;
+  external TW_HANDLE hParent;
 }
 
 @ffi.Packed(2)
 class TW_SETUPFILEXFER2 extends ffi.Struct {
-  external ffi.Pointer<ffi.Void> FileName;
+  external TW_MEMREF FileName;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int FileNameType;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int Format;
 
-  @ffi.Int16()
+  @TW_INT16()
   external int VRefNum;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int parID;
 }
 
@@ -769,42 +795,42 @@ class TW_TWUNKIDENTITY extends ffi.Struct {
 
 @ffi.Packed(2)
 class TW_TWUNKDSENTRYPARAMS extends ffi.Struct {
-  @ffi.Int8()
+  @TW_INT8()
   external int destFlag;
 
   external TW_IDENTITY dest;
 
-  @ffi.Int32()
+  @TW_INT32()
   external int dataGroup;
 
-  @ffi.Int16()
+  @TW_INT16()
   external int dataArgType;
 
-  @ffi.Int16()
+  @TW_INT16()
   external int message;
 
-  @ffi.Int32()
+  @TW_INT32()
   external int pDataSize;
 }
 
 @ffi.Packed(2)
 class TW_TWUNKDSENTRYRETURN extends ffi.Struct {
-  @ffi.Uint16()
+  @TW_UINT16()
   external int returnCode;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int conditionCode;
 
-  @ffi.Int32()
+  @TW_INT32()
   external int pDataSize;
 }
 
 @ffi.Packed(2)
 class TW_CAPEXT extends ffi.Struct {
-  @ffi.Uint16()
+  @TW_UINT16()
   external int Cap;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int Properties;
 }
 
@@ -813,71 +839,86 @@ class TW_SETUPAUDIOFILEXFER extends ffi.Struct {
   @ffi.Array.multi([256])
   external ffi.Array<ffi.Int8> FileName;
 
-  @ffi.Uint16()
+  @TW_UINT16()
   external int Format;
 
-  @ffi.Int16()
+  @TW_INT16()
   external int VRefNum;
 }
 
+typedef pTW_IDENTITY = ffi.Pointer<TW_IDENTITY>;
+
 @ffi.Packed(2)
 class TW_ENTRYPOINT extends ffi.Struct {
-  @ffi.Uint32()
+  @TW_UINT32()
   external int Size;
 
-  external ffi.Pointer<ffi.NativeFunction<DSMENTRYPROC>> DSM_Entry;
+  external DSMENTRYPROC DSM_Entry;
 
-  external ffi.Pointer<ffi.NativeFunction<DSM_MEMALLOCATE>> DSM_MemAllocate;
+  external DSM_MEMALLOCATE DSM_MemAllocate;
 
-  external ffi.Pointer<ffi.NativeFunction<DSM_MEMFREE>> DSM_MemFree;
+  external DSM_MEMFREE DSM_MemFree;
 
-  external ffi.Pointer<ffi.NativeFunction<DSM_MEMLOCK>> DSM_MemLock;
+  external DSM_MEMLOCK DSM_MemLock;
 
-  external ffi.Pointer<ffi.NativeFunction<DSM_MEMUNLOCK>> DSM_MemUnlock;
+  external DSM_MEMUNLOCK DSM_MemUnlock;
 }
+
+typedef DSMENTRYPROC = ffi.Pointer<
+    ffi.NativeFunction<
+        TW_UINT16 Function(pTW_IDENTITY, pTW_IDENTITY, TW_UINT32, TW_UINT16,
+            TW_UINT16, TW_MEMREF)>>;
+typedef DSM_MEMALLOCATE
+    = ffi.Pointer<ffi.NativeFunction<TW_HANDLE Function(TW_UINT32)>>;
+typedef DSM_MEMFREE
+    = ffi.Pointer<ffi.NativeFunction<ffi.Void Function(TW_HANDLE)>>;
+typedef DSM_MEMLOCK
+    = ffi.Pointer<ffi.NativeFunction<TW_MEMREF Function(TW_HANDLE)>>;
+typedef DSM_MEMUNLOCK
+    = ffi.Pointer<ffi.NativeFunction<ffi.Void Function(TW_HANDLE)>>;
 
 @ffi.Packed(2)
 class TW_FILTER_DESCRIPTOR extends ffi.Struct {
-  @ffi.Uint32()
+  @TW_UINT32()
   external int Size;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int HueStart;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int HueEnd;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int SaturationStart;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int SaturationEnd;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int ValueStart;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int ValueEnd;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int Replacement;
 }
 
 @ffi.Packed(2)
 class TW_FILTER extends ffi.Struct {
-  @ffi.Uint32()
+  @TW_UINT32()
   external int Size;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int DescriptorCount;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int MaxDescriptorCount;
 
-  @ffi.Uint32()
+  @TW_UINT32()
   external int Condition;
 
-  external ffi.Pointer<ffi.Void> hDescriptors;
+  external TW_HANDLE hDescriptors;
 }
 
 const int TWON_PROTOCOLMINOR = 4;
@@ -3263,112 +3304,3 @@ const int TWCB_AUTO = 0;
 const int TWCB_CLEAR = 1;
 
 const int TWCB_NOCLEAR = 2;
-
-typedef _c_DSM_Entry = ffi.Uint16 Function(
-  ffi.Pointer<TW_IDENTITY> pOrigin,
-  ffi.Pointer<TW_IDENTITY> pDest,
-  ffi.Uint32 DG,
-  ffi.Uint16 DAT,
-  ffi.Uint16 MSG,
-  ffi.Pointer<ffi.Void> pData,
-);
-
-typedef _dart_DSM_Entry = int Function(
-  ffi.Pointer<TW_IDENTITY> pOrigin,
-  ffi.Pointer<TW_IDENTITY> pDest,
-  int DG,
-  int DAT,
-  int MSG,
-  ffi.Pointer<ffi.Void> pData,
-);
-
-typedef _c_DS_Entry = ffi.Uint16 Function(
-  ffi.Pointer<TW_IDENTITY> pOrigin,
-  ffi.Uint32 DG,
-  ffi.Uint16 DAT,
-  ffi.Uint16 MSG,
-  ffi.Pointer<ffi.Void> pData,
-);
-
-typedef _dart_DS_Entry = int Function(
-  ffi.Pointer<TW_IDENTITY> pOrigin,
-  int DG,
-  int DAT,
-  int MSG,
-  ffi.Pointer<ffi.Void> pData,
-);
-
-typedef _c_TWAIN_Callback = ffi.Uint16 Function(
-  ffi.Pointer<TW_IDENTITY> pOrigin,
-  ffi.Pointer<TW_IDENTITY> pDest,
-  ffi.Uint32 DG,
-  ffi.Uint16 DAT,
-  ffi.Uint16 MSG,
-  ffi.Pointer<ffi.Void> pData,
-);
-
-typedef _dart_TWAIN_Callback = int Function(
-  ffi.Pointer<TW_IDENTITY> pOrigin,
-  ffi.Pointer<TW_IDENTITY> pDest,
-  int DG,
-  int DAT,
-  int MSG,
-  ffi.Pointer<ffi.Void> pData,
-);
-
-typedef _c_DSM_MemAllocate = ffi.Pointer<ffi.Void> Function(
-  ffi.Uint32 arg0,
-);
-
-typedef _dart_DSM_MemAllocate = ffi.Pointer<ffi.Void> Function(
-  int arg0,
-);
-
-typedef _c_DSM_MemFree = ffi.Void Function(
-  ffi.Pointer<ffi.Void> arg0,
-);
-
-typedef _dart_DSM_MemFree = void Function(
-  ffi.Pointer<ffi.Void> arg0,
-);
-
-typedef _c_DSM_MemLock = ffi.Pointer<ffi.Void> Function(
-  ffi.Pointer<ffi.Void> arg0,
-);
-
-typedef _dart_DSM_MemLock = ffi.Pointer<ffi.Void> Function(
-  ffi.Pointer<ffi.Void> arg0,
-);
-
-typedef _c_DSM_MemUnlock = ffi.Void Function(
-  ffi.Pointer<ffi.Void> arg0,
-);
-
-typedef _dart_DSM_MemUnlock = void Function(
-  ffi.Pointer<ffi.Void> arg0,
-);
-
-typedef DSMENTRYPROC = ffi.Uint16 Function(
-  ffi.Pointer<TW_IDENTITY>,
-  ffi.Pointer<TW_IDENTITY>,
-  ffi.Uint32,
-  ffi.Uint16,
-  ffi.Uint16,
-  ffi.Pointer<ffi.Void>,
-);
-
-typedef DSM_MEMALLOCATE = ffi.Pointer<ffi.Void> Function(
-  ffi.Uint32,
-);
-
-typedef DSM_MEMFREE = ffi.Void Function(
-  ffi.Pointer<ffi.Void>,
-);
-
-typedef DSM_MEMLOCK = ffi.Pointer<ffi.Void> Function(
-  ffi.Pointer<ffi.Void>,
-);
-
-typedef DSM_MEMUNLOCK = ffi.Void Function(
-  ffi.Pointer<ffi.Void>,
-);
